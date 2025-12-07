@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package generator;
+
+service ImageService {
+    rpc GenerateImage (GenerateImageRequest) returns (GenerateImageResponse);
+}
+
+message GenerateImageRequest {
+    string positive_prompt = 1;
+    string negative_prompt = 2;
+}
+
+message GenerateImageResponse {
+    bytes image = 1;
+    string mime_type = 2;
+    string filename_hint = 3;
+}

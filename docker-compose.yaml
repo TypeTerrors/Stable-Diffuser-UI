@@ -1,0 +1,62 @@
+services:
+  py:
+    build:
+      context: ./py
+      dockerfile: Dockerfile
+    container_name: img-generator-py
+    env_file: .env
+    environment:
+      MODEL_PATH: ${PY_MODEL_PATH}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./py:/app
+      - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}:ro
+    working_dir: /app
+    command: python main.py
+    ports:
+      - "${PY_PORT}:50051"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc, socket; s=grpc.insecure_channel('localhost:50051'); s.close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+
+  be:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: img-generator-be
+    depends_on:
+      py:
+        condition: service_started
+    env_file: .env
+    environment:
+      APP_ENV: ${APP_ENV}
+      API_PORT: ${API_PORT}
+      RPC_PEER: ${RPC_PEER}
+      RPC_PORT: ${RPC_PORT}
+    ports:
+      - "${API_PORT}:8080"
+
+  fe:
+    image: node:20
+    container_name: img-generator-fe
+    working_dir: /app
+    volumes:
+      - ./fe:/app
+      - /app/node_modules
+    env_file: .env
+    environment:
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+      NODE_ENV: development
+    command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0 --port 3000"
+    ports:
+      - "${FE_PORT}:3000"
+    depends_on:
+      be:
+        condition: service_started

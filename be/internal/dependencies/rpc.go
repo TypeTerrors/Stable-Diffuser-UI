@@ -1,0 +1,61 @@
+package dependencies
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"be/proto"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
+
+type Rpc struct {
+	ctx    *context.Context
+	cancel context.CancelFunc
+	conn   *grpc.ClientConn
+}
+
+func NewRpc(peer, port string) (*Rpc, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+
+	conn, err := grpc.DialContext(
+		ctx,
+		fmt.Sprint(peer, ":", port),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("error creating newrpc: %w", err)
+	}
+
+	return &Rpc{
+		ctx:    &ctx,
+		conn:   conn,
+		cancel: cancel,
+	}, nil
+}
+
+func (r *Rpc) GenerateImage(positivePrompt, negativePrompt string) (*proto.GenerateImageResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.GenerateImage(ctx, &proto.GenerateImageRequest{
+		PositivePrompt: positivePrompt,
+		NegativePrompt: negativePrompt,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Rpc) Close() {
+	r.cancel()
+	r.conn.Close()
+}

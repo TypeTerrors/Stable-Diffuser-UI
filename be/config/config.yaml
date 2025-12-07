@@ -1,0 +1,10 @@
+app_name: my-service
+env: ${APP_ENV:-dev}
+
+api:
+  port: ${API_PORT:-8080} # validate:required,min=1,max=65535
+  log_level: info # validate:required
+
+rpc:
+  port: ${RPC_PORT:-50051} # validate:required,min=1,max=65535
+  peer: ${RPC_PEER} # validate:reuqired
