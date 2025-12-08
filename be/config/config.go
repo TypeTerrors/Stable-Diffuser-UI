@@ -6,8 +6,9 @@ import "fmt"
 
 type Config struct {
 	Api struct {
-		LogLevel string `yaml:"log_level"`
-		Port     string `yaml:"port"`
+		AllowedOrigins string `yaml:"allowed_origins"`
+		LogLevel       string `yaml:"log_level"`
+		Port           string `yaml:"port"`
 	} `yaml:"api"`
 	AppName string `yaml:"app_name"`
 	Env     string `yaml:"env"`
@@ -23,6 +24,9 @@ func (c Config) Validate() error {
 	}
 	if c.Api.LogLevel == "" {
 		return fmt.Errorf("api.log_level is required")
+	}
+	if c.Api.AllowedOrigins == "" {
+		return fmt.Errorf("api.allowed_origins is required")
 	}
 	if c.Rpc.Port == "" {
 		return fmt.Errorf("rpc.port is required")

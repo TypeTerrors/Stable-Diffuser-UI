@@ -17,7 +17,7 @@ export default function Home() {
     event.preventDefault();
     // TODO: POST to your Go API, then setPreviewSrc(URL.createObjectURL(...)) or base64 string
   
-    const baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8081"
+    const baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081"
     const url = new URL("generateimage",baseUrl)
 
     try {

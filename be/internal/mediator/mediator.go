@@ -21,7 +21,7 @@ func NewApp(config config.Config) (*App, error) {
 		return nil, fmt.Errorf("error creating newapp: %w", err)
 	}
 
-	api := services.NewApi(config.Api.Port, rpc)
+	api := services.NewApi(config.Api.Port, rpc, config.Api.AllowedOrigins)
 
 	return &App{
 		api: api,

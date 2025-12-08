@@ -9,15 +9,10 @@ class SDXLModel:
         if not weights.exists():
             raise FileNotFoundError(weights)
 
-        self.pipe = (
-            StableDiffusionXLPipeline.from_single_file(
-                weights,
-                torch_dtype=torch.float16,
-            )
-            .to(device)
-            .eval()
-        )
-        self.pipe.load_textual_inversion()
+        self.pipe = StableDiffusionXLPipeline.from_single_file(
+            weights,
+            torch_dtype=torch.float16,
+        ).to(device)
 
     def generate_image(self, positive_prompt: str, negative_prompt: str):
         image = self.pipe(
