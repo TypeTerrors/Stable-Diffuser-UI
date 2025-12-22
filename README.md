@@ -74,7 +74,7 @@ img-generator
 - **Dependencies:** pinned in `py/requirements.txt` (`torch`, `diffusers`, `grpcio`, `grpcio-tools`, `mypy-protobuf`).
 - **Proto generation:** `make -C py generate_proto` uses `grpcio-tools` with `--mypy_out` to emit `.py` and `.pyi` stubs under `py/proto`.
 - **Devcontainer:** `py/.devcontainer` builds the NVIDIA base image, binds the repo into `/workspace`, and enables GPU access inside VS Code.
-- **Models:** default path `/workspace/models/sd_xl_base_1.0.safetensors`. The compose file mounts `./py/models` into that location; drop your `.safetensors` there.
+- **Models:** `MODEL_PATH` can point to either a single `.safetensors` file (loaded via `from_single_file`) or a local Diffusers model directory (loaded via `from_pretrained(local_files_only=True)`). The compose file mounts `./py/models` into `/workspace/models:ro`.
 
 **Important:** the worker expects a GPU (or change `device="cuda"` to `cpu` but expect slow inference). Loading happens once at startup so requests reuse the same pipeline.
 
@@ -121,7 +121,7 @@ API_PORT=8080
 RPC_PEER=py
 RPC_PORT=50051
 PY_PORT=50051
-PY_MODEL_PATH=/workspace/models/sd_xl_base_1.0.safetensors
+PY_MODEL_PATH=/workspace/models/sd_xl_base_1.0.safetensors  # or /workspace/models for Z-Image-Turbo
 MODEL_MOUNT_PATH=/workspace/models
 FE_PORT=3000
 NEXT_PUBLIC_BASE_URL=http://localhost:8080
