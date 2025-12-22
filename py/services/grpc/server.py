@@ -19,13 +19,13 @@ def _resolve_model_path() -> str:
             "MODEL_PATH is not set. Ensure docker-compose passes PY_MODEL_PATH to the py service."
         )
 
-    weights = Path(env_path)
-    if not weights.exists():
+    model_path = Path(env_path)
+    if not model_path.exists():
         raise FileNotFoundError(
-            f"Stable Diffusion model not found at {env_path}. Confirm the host path is mounted into the container."
+            f"Diffusers model not found at {env_path}. Confirm the host path is mounted into the container."
         )
 
-    return str(weights)
+    return str(model_path)
 
 
 def serve():
