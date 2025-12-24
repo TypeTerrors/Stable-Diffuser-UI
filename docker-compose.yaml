@@ -20,6 +20,10 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
     deploy:
       resources:
         reservations:

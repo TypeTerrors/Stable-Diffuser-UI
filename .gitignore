@@ -1,4 +1,5 @@
 fe/node_modules
 py/models
+py/loras
 py/.devcontainer
 *.pyc

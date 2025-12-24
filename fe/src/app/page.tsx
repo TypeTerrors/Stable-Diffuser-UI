@@ -1,17 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
+function parseFilename(contentDisposition: string | null): string | null {
+  if (!contentDisposition) return null;
+  const match =
+    contentDisposition.match(/filename\*=UTF-8''([^;]+)/i) ??
+    contentDisposition.match(/filename="?([^\";]+)"?/i);
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
 export default function Home() {
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [previewSrc, setPreviewSrc] = useState("/placeholder.png");
+  const [downloadName, setDownloadName] = useState("generated.png");
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -36,9 +49,13 @@ export default function Home() {
 
       if (!responseImage.ok) throw new Error(`HTTP error! status: ${responseImage.status}`)
     
+      const filename =
+        parseFilename(responseImage.headers.get("content-disposition")) ??
+        "generated.png";
       const blob = await responseImage.blob();
       const objectUrl = URL.createObjectURL(blob)
       setPreviewSrc(objectUrl);
+      setDownloadName(filename);
 
     } catch (error) {
       return error
@@ -47,11 +64,11 @@ export default function Home() {
 
   useEffect(()=>{
     return () => {
-      if (previewSrc) {
+      if (previewSrc?.startsWith("blob:")) {
         URL.revokeObjectURL(previewSrc)
       }
     }
-  });
+  }, [previewSrc]);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -98,22 +115,21 @@ export default function Home() {
         <section className="w-full lg:w-1/2">
           <div className="rounded-xl border bg-card p-4 shadow-sm">
             <AspectRatio ratio={1}>
-              <div className="flex items-center justify-center rounded-lg bg-muted">
-                {previewSrc ? (
-                  <Image
-                    src={previewSrc}
-                    alt="Generated preview"
-                    fill
-                    className="rounded-lg object-cover"
-                    priority
-                  />
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    Your image will appear here
-                  </span>
-                )}
+              <div className="flex items-center justify-center overflow-hidden rounded-lg bg-muted">
+                <img
+                  src={previewSrc}
+                  alt="Generated preview"
+                  className="h-full w-full object-cover"
+                />
               </div>
             </AspectRatio>
+            {previewSrc.startsWith("blob:") ? (
+              <Button asChild variant="secondary" className="mt-4 w-full">
+                <a href={previewSrc} download={downloadName}>
+                  Download
+                </a>
+              </Button>
+            ) : null}
           </div>
         </section>
       </div>

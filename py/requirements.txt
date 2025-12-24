@@ -2,5 +2,7 @@ diffusers
 grpcio>=1.76.0
 grpcio-tools>=1.76.0
 mypy-protobuf
+compel
+peft
 torch
 transformers

@@ -1,3 +1,5 @@
 Makefile
 Dockerfile
 .devcontainer/
+models/
+loras/
