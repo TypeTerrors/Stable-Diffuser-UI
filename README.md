@@ -76,6 +76,7 @@ img-generator
 - **Devcontainer:** `py/.devcontainer` builds the NVIDIA base image, binds the repo into `/workspace`, and enables GPU access inside VS Code.
 - **Models:** `MODEL_PATH` can point to either a single `.safetensors` file (loaded via `from_single_file`) or a local Diffusers model directory (loaded via `from_pretrained(local_files_only=True)`). The compose file mounts `./py/models` into `/workspace/models:ro`.
 - **Long prompts (SDXL/CLIP):** CLIP encoders cap at 77 tokens. To avoid truncation on SDXL checkpoints, set `MODEL_PROMPT_CHUNKING=1` (uses `compel` to chunk prompts into embeddings).
+- **Chunking mode:** optionally set `MODEL_PROMPT_SPLIT_MODE=brutal|words|phrases|sentences` (default `brutal`, best for very long prompts).
 
 **Important:** the worker expects a GPU (or change `device="cuda"` to `cpu` but expect slow inference). Loading happens once at startup so requests reuse the same pipeline.
 

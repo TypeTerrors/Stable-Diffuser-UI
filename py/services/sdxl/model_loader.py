@@ -103,6 +103,22 @@ class SDXLModel:
 
     def _build_sdxl_compel(self):
         from compel import Compel, ReturnedEmbeddingsType
+        from compel.embeddings_provider import SplitLongTextMode
+        from transformers.utils import logging as hf_logging
+
+        split_mode = (os.getenv("MODEL_PROMPT_SPLIT_MODE") or "brutal").strip().lower()
+        split_modes = {
+            "brutal": SplitLongTextMode.BRUTAL,
+            "words": SplitLongTextMode.WORDS,
+            "phrases": SplitLongTextMode.PHRASES,
+            "sentences": SplitLongTextMode.SENTENCES,
+        }
+        mode = split_modes.get(split_mode, SplitLongTextMode.BRUTAL)
+        logger.info("SDXL prompt chunking enabled (split_mode=%s)", split_mode)
+        # Avoid scary "Token indices ... (172 > 77)" logs when Compel is doing the splitting safely.
+        hf_logging.set_verbosity_error()
+        logging.getLogger("transformers").setLevel(logging.ERROR)
+        logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
 
         return Compel(
             tokenizer=[self.pipe.tokenizer, self.pipe.tokenizer_2],
@@ -110,6 +126,7 @@ class SDXLModel:
             returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
             requires_pooled=[False, True],
             truncate_long_prompts=False,
+            split_long_text_mode=mode,
         )
 
     def generate_image(self, positive_prompt: str, negative_prompt: str):
@@ -132,6 +149,15 @@ class SDXLModel:
                 negative_prompt_embeds, negative_pooled_prompt_embeds = self._compel(
                     negative_prompt
                 )
+                if prompt_embeds.shape[1] != negative_prompt_embeds.shape[1]:
+                    target = max(prompt_embeds.shape[1], negative_prompt_embeds.shape[1])
+                    prompt_embeds = torch.nn.functional.pad(
+                        prompt_embeds, (0, 0, 0, target - prompt_embeds.shape[1])
+                    )
+                    negative_prompt_embeds = torch.nn.functional.pad(
+                        negative_prompt_embeds,
+                        (0, 0, 0, target - negative_prompt_embeds.shape[1]),
+                    )
                 image = self.pipe(
                     prompt_embeds=prompt_embeds,
                     pooled_prompt_embeds=pooled_prompt_embeds,

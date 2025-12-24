@@ -23,7 +23,7 @@ function parseFilename(contentDisposition: string | null): string | null {
 export default function Home() {
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [previewSrc, setPreviewSrc] = useState("/placeholder.png");
+  const [previewSrc, setPreviewSrc] = useState("/file.svg");
   const [downloadName, setDownloadName] = useState("generated.png");
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
