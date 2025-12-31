@@ -19,101 +19,139 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ImageService_GenerateImage_FullMethodName = "/generator.ImageService/GenerateImage"
+	InferenceService_GenerateImage_FullMethodName        = "/generator.InferenceService/GenerateImage"
+	InferenceService_GenerateImageToVideo_FullMethodName = "/generator.InferenceService/GenerateImageToVideo"
 )
 
-// ImageServiceClient is the client API for ImageService service.
+// InferenceServiceClient is the client API for InferenceService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ImageServiceClient interface {
+type InferenceServiceClient interface {
 	GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (*GenerateImageResponse, error)
+	GenerateImageToVideo(ctx context.Context, in *GenerateImageToVideoRequest, opts ...grpc.CallOption) (*GenerateImageToVideoResponse, error)
 }
 
-type imageServiceClient struct {
+type inferenceServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewImageServiceClient(cc grpc.ClientConnInterface) ImageServiceClient {
-	return &imageServiceClient{cc}
+func NewInferenceServiceClient(cc grpc.ClientConnInterface) InferenceServiceClient {
+	return &inferenceServiceClient{cc}
 }
 
-func (c *imageServiceClient) GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (*GenerateImageResponse, error) {
+func (c *inferenceServiceClient) GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (*GenerateImageResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GenerateImageResponse)
-	err := c.cc.Invoke(ctx, ImageService_GenerateImage_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, InferenceService_GenerateImage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// ImageServiceServer is the server API for ImageService service.
-// All implementations must embed UnimplementedImageServiceServer
-// for forward compatibility.
-type ImageServiceServer interface {
-	GenerateImage(context.Context, *GenerateImageRequest) (*GenerateImageResponse, error)
-	mustEmbedUnimplementedImageServiceServer()
+func (c *inferenceServiceClient) GenerateImageToVideo(ctx context.Context, in *GenerateImageToVideoRequest, opts ...grpc.CallOption) (*GenerateImageToVideoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateImageToVideoResponse)
+	err := c.cc.Invoke(ctx, InferenceService_GenerateImageToVideo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
-// UnimplementedImageServiceServer must be embedded to have
+// InferenceServiceServer is the server API for InferenceService service.
+// All implementations must embed UnimplementedInferenceServiceServer
+// for forward compatibility.
+type InferenceServiceServer interface {
+	GenerateImage(context.Context, *GenerateImageRequest) (*GenerateImageResponse, error)
+	GenerateImageToVideo(context.Context, *GenerateImageToVideoRequest) (*GenerateImageToVideoResponse, error)
+	mustEmbedUnimplementedInferenceServiceServer()
+}
+
+// UnimplementedInferenceServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedImageServiceServer struct{}
+type UnimplementedInferenceServiceServer struct{}
 
-func (UnimplementedImageServiceServer) GenerateImage(context.Context, *GenerateImageRequest) (*GenerateImageResponse, error) {
+func (UnimplementedInferenceServiceServer) GenerateImage(context.Context, *GenerateImageRequest) (*GenerateImageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GenerateImage not implemented")
 }
-func (UnimplementedImageServiceServer) mustEmbedUnimplementedImageServiceServer() {}
-func (UnimplementedImageServiceServer) testEmbeddedByValue()                      {}
+func (UnimplementedInferenceServiceServer) GenerateImageToVideo(context.Context, *GenerateImageToVideoRequest) (*GenerateImageToVideoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GenerateImageToVideo not implemented")
+}
+func (UnimplementedInferenceServiceServer) mustEmbedUnimplementedInferenceServiceServer() {}
+func (UnimplementedInferenceServiceServer) testEmbeddedByValue()                          {}
 
-// UnsafeImageServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ImageServiceServer will
+// UnsafeInferenceServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to InferenceServiceServer will
 // result in compilation errors.
-type UnsafeImageServiceServer interface {
-	mustEmbedUnimplementedImageServiceServer()
+type UnsafeInferenceServiceServer interface {
+	mustEmbedUnimplementedInferenceServiceServer()
 }
 
-func RegisterImageServiceServer(s grpc.ServiceRegistrar, srv ImageServiceServer) {
-	// If the following call panics, it indicates UnimplementedImageServiceServer was
+func RegisterInferenceServiceServer(s grpc.ServiceRegistrar, srv InferenceServiceServer) {
+	// If the following call panics, it indicates UnimplementedInferenceServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&ImageService_ServiceDesc, srv)
+	s.RegisterService(&InferenceService_ServiceDesc, srv)
 }
 
-func _ImageService_GenerateImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _InferenceService_GenerateImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GenerateImageRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ImageServiceServer).GenerateImage(ctx, in)
+		return srv.(InferenceServiceServer).GenerateImage(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ImageService_GenerateImage_FullMethodName,
+		FullMethod: InferenceService_GenerateImage_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ImageServiceServer).GenerateImage(ctx, req.(*GenerateImageRequest))
+		return srv.(InferenceServiceServer).GenerateImage(ctx, req.(*GenerateImageRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// ImageService_ServiceDesc is the grpc.ServiceDesc for ImageService service.
+func _InferenceService_GenerateImageToVideo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateImageToVideoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InferenceServiceServer).GenerateImageToVideo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InferenceService_GenerateImageToVideo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InferenceServiceServer).GenerateImageToVideo(ctx, req.(*GenerateImageToVideoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// InferenceService_ServiceDesc is the grpc.ServiceDesc for InferenceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var ImageService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "generator.ImageService",
-	HandlerType: (*ImageServiceServer)(nil),
+var InferenceService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "generator.InferenceService",
+	HandlerType: (*InferenceServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GenerateImage",
-			Handler:    _ImageService_GenerateImage_Handler,
+			Handler:    _InferenceService_GenerateImage_Handler,
+		},
+		{
+			MethodName: "GenerateImageToVideo",
+			Handler:    _InferenceService_GenerateImageToVideo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

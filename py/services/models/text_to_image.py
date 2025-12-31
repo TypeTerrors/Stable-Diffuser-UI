@@ -10,7 +10,7 @@ from diffusers import DiffusionPipeline, StableDiffusionXLPipeline
 
 logger = logging.getLogger(__name__)
 
-class SDXLModel:
+class TextToImageModel:
     def __init__(self, model_path: str, device: str = "cuda"):
         self._path = Path(model_path)
         self._model_index = self._read_model_index(self._path)

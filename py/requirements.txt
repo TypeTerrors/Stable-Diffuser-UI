@@ -6,3 +6,6 @@ compel
 peft
 torch
 transformers
+numpy
+pillow
+av

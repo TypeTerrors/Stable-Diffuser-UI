@@ -2,9 +2,10 @@ syntax = "proto3";
 
 package generator;
 
-service ImageService {
+service InferenceService {
     rpc GenerateImage (GenerateImageRequest) returns (GenerateImageResponse);
-}
+    rpc GenerateImageToVideo (GenerateImageToVideoRequest) returns (GenerateImageToVideoResponse);
+};
 
 message GenerateImageRequest {
     string positive_prompt = 1;
@@ -13,6 +14,18 @@ message GenerateImageRequest {
 
 message GenerateImageResponse {
     bytes image = 1;
+    string mime_type = 2;
+    string filename_hint = 3;
+}
+
+message GenerateImageToVideoRequest {
+    bytes image = 3;
+    string positive_prompt = 1;
+    string negative_prompt = 2;
+}
+
+message GenerateImageToVideoResponse {
+    bytes video = 1;
     string mime_type = 2;
     string filename_hint = 3;
 }

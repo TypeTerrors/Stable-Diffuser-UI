@@ -54,3 +54,45 @@ class GenerateImageResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["filename_hint", b"filename_hint", "image", b"image", "mime_type", b"mime_type"]) -> None: ...
 
 Global___GenerateImageResponse: typing_extensions.TypeAlias = GenerateImageResponse
+
+@typing.final
+class GenerateImageToVideoRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    IMAGE_FIELD_NUMBER: builtins.int
+    POSITIVE_PROMPT_FIELD_NUMBER: builtins.int
+    NEGATIVE_PROMPT_FIELD_NUMBER: builtins.int
+    image: builtins.bytes
+    positive_prompt: builtins.str
+    negative_prompt: builtins.str
+    def __init__(
+        self,
+        *,
+        image: builtins.bytes = ...,
+        positive_prompt: builtins.str = ...,
+        negative_prompt: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["image", b"image", "negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]) -> None: ...
+
+Global___GenerateImageToVideoRequest: typing_extensions.TypeAlias = GenerateImageToVideoRequest
+
+@typing.final
+class GenerateImageToVideoResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    VIDEO_FIELD_NUMBER: builtins.int
+    MIME_TYPE_FIELD_NUMBER: builtins.int
+    FILENAME_HINT_FIELD_NUMBER: builtins.int
+    video: builtins.bytes
+    mime_type: builtins.str
+    filename_hint: builtins.str
+    def __init__(
+        self,
+        *,
+        video: builtins.bytes = ...,
+        mime_type: builtins.str = ...,
+        filename_hint: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filename_hint", b"filename_hint", "mime_type", b"mime_type", "video", b"video"]) -> None: ...
+
+Global___GenerateImageToVideoResponse: typing_extensions.TypeAlias = GenerateImageToVideoResponse

@@ -39,15 +39,33 @@ func NewRpc(peer, port string) (*Rpc, error) {
 	}, nil
 }
 
-func (r *Rpc) GenerateImage(positivePrompt, negativePrompt string) (*proto.GenerateImageResponse, error) {
+func (r *Rpc) GenerateTextToImage(positivePrompt, negativePrompt string) (*proto.GenerateImageResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 
-	client := proto.NewImageServiceClient(r.conn)
+	client := proto.NewInferenceServiceClient(r.conn)
 	resp, err := client.GenerateImage(ctx, &proto.GenerateImageRequest{
 		PositivePrompt: positivePrompt,
 		NegativePrompt: negativePrompt,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Rpc) GenerateImageToVideo(imageBytes []byte, positivePrompt, negativePrompt string) (*proto.GenerateImageToVideoResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewInferenceServiceClient(r.conn)
+	resp, err := client.GenerateImageToVideo(ctx, &proto.GenerateImageToVideoRequest{
+		Image:          imageBytes,
+		PositivePrompt: positivePrompt,
+		NegativePrompt: negativePrompt,
+	})
+
 	if err != nil {
 		return nil, err
 	}

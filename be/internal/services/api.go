@@ -46,5 +46,6 @@ func (a *Api) Start() {
 
 func (a *Api) addRoutes() {
 	a.server.Add("GET", "/health", a.Health())
-	a.server.Add("POST", "/generateimage", a.GenerateImage())
+	a.server.Add("POST", "/generateimage", a.GenerateTextToImage())
+	a.server.Add("POST", "/generateimagetovideo", a.GenerateImageToVideo())
 }

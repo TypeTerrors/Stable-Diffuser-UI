@@ -3,3 +3,13 @@ py/models
 py/loras
 py/.devcontainer
 *.pyc
+py/__pycache__
+be/.bin/
+sdxl/__pycache__
+py/services/__pycache__
+py/proto/__pycache__
+
+# Local environment files (never commit real values)
+.env
+.env.*
+!.env.example

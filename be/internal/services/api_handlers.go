@@ -18,10 +18,10 @@ func (a *Api) Health() fiber.Handler {
 	}
 }
 
-func (a *Api) GenerateImage() fiber.Handler {
+func (a *Api) GenerateTextToImage() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 
-		var requestBody types.ImagePostRequest
+		var requestBody types.TextToImagePostRequest
 		if err := ctx.BodyParser(&requestBody); err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   err.Error(),
@@ -30,7 +30,7 @@ func (a *Api) GenerateImage() fiber.Handler {
 		}
 
 		// now is the time to implement then call the rpc service
-		resp, err := a.rpc.GenerateImage(requestBody.PositivePrompt, requestBody.NegativePrompt)
+		resp, err := a.rpc.GenerateTextToImage(requestBody.PositivePrompt, requestBody.NegativePrompt)
 		if err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   err.Error(),
@@ -43,4 +43,31 @@ func (a *Api) GenerateImage() fiber.Handler {
 		ctx.Response().SetBodyRaw(resp.Image)
 		return nil
 	}
+}
+
+func (a *Api) GenerateImageToVideo() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+
+		var requestBody types.ImageToVideoPostRequest
+		if err := ctx.BodyParser(&requestBody); err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid body",
+			})
+		}
+
+		resp, err := a.rpc.GenerateImageToVideo(requestBody.ImageBytes, requestBody.PositivePrompt, requestBody.NegativePrompt)
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to generate video",
+			})
+		}
+
+		ctx.Set(fiber.HeaderContentType, resp.MimeType)
+		ctx.Set(fiber.HeaderContentDisposition, fmt.Sprintf("inline; filename=%s", resp.FilenameHint))
+		ctx.Response().SetBodyRaw(resp.Video)
+		return nil
+	}
+
 }

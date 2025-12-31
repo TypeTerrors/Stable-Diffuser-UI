@@ -25,7 +25,7 @@ if _version_not_supported:
     )
 
 
-class ImageServiceStub(object):
+class InferenceServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -35,13 +35,18 @@ class ImageServiceStub(object):
             channel: A grpc.Channel.
         """
         self.GenerateImage = channel.unary_unary(
-                '/generator.ImageService/GenerateImage',
+                '/generator.InferenceService/GenerateImage',
                 request_serializer=img__service__pb2.GenerateImageRequest.SerializeToString,
                 response_deserializer=img__service__pb2.GenerateImageResponse.FromString,
                 _registered_method=True)
+        self.GenerateImageToVideo = channel.unary_unary(
+                '/generator.InferenceService/GenerateImageToVideo',
+                request_serializer=img__service__pb2.GenerateImageToVideoRequest.SerializeToString,
+                response_deserializer=img__service__pb2.GenerateImageToVideoResponse.FromString,
+                _registered_method=True)
 
 
-class ImageServiceServicer(object):
+class InferenceServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GenerateImage(self, request, context):
@@ -50,23 +55,34 @@ class ImageServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GenerateImageToVideo(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
-def add_ImageServiceServicer_to_server(servicer, server):
+
+def add_InferenceServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GenerateImage': grpc.unary_unary_rpc_method_handler(
                     servicer.GenerateImage,
                     request_deserializer=img__service__pb2.GenerateImageRequest.FromString,
                     response_serializer=img__service__pb2.GenerateImageResponse.SerializeToString,
             ),
+            'GenerateImageToVideo': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateImageToVideo,
+                    request_deserializer=img__service__pb2.GenerateImageToVideoRequest.FromString,
+                    response_serializer=img__service__pb2.GenerateImageToVideoResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'generator.ImageService', rpc_method_handlers)
+            'generator.InferenceService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('generator.ImageService', rpc_method_handlers)
+    server.add_registered_method_handlers('generator.InferenceService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class ImageService(object):
+class InferenceService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -83,9 +99,36 @@ class ImageService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/generator.ImageService/GenerateImage',
+            '/generator.InferenceService/GenerateImage',
             img__service__pb2.GenerateImageRequest.SerializeToString,
             img__service__pb2.GenerateImageResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateImageToVideo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/generator.InferenceService/GenerateImageToVideo',
+            img__service__pb2.GenerateImageToVideoRequest.SerializeToString,
+            img__service__pb2.GenerateImageToVideoResponse.FromString,
             options,
             channel_credentials,
             insecure,

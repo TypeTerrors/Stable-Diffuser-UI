@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11img_service.proto\x12\tgenerator\"H\n\x14GenerateImageRequest\x12\x17\n\x0fpositive_prompt\x18\x01 \x01(\t\x12\x17\n\x0fnegative_prompt\x18\x02 \x01(\t\"P\n\x15GenerateImageResponse\x12\r\n\x05image\x18\x01 \x01(\x0c\x12\x11\n\tmime_type\x18\x02 \x01(\t\x12\x15\n\rfilename_hint\x18\x03 \x01(\t2b\n\x0cImageService\x12R\n\rGenerateImage\x12\x1f.generator.GenerateImageRequest\x1a .generator.GenerateImageResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11img_service.proto\x12\tgenerator\"H\n\x14GenerateImageRequest\x12\x17\n\x0fpositive_prompt\x18\x01 \x01(\t\x12\x17\n\x0fnegative_prompt\x18\x02 \x01(\t\"P\n\x15GenerateImageResponse\x12\r\n\x05image\x18\x01 \x01(\x0c\x12\x11\n\tmime_type\x18\x02 \x01(\t\x12\x15\n\rfilename_hint\x18\x03 \x01(\t\"^\n\x1bGenerateImageToVideoRequest\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x17\n\x0fpositive_prompt\x18\x01 \x01(\t\x12\x17\n\x0fnegative_prompt\x18\x02 \x01(\t\"W\n\x1cGenerateImageToVideoResponse\x12\r\n\x05video\x18\x01 \x01(\x0c\x12\x11\n\tmime_type\x18\x02 \x01(\t\x12\x15\n\rfilename_hint\x18\x03 \x01(\t2\xcf\x01\n\x10InferenceService\x12R\n\rGenerateImage\x12\x1f.generator.GenerateImageRequest\x1a .generator.GenerateImageResponse\x12g\n\x14GenerateImageToVideo\x12&.generator.GenerateImageToVideoRequest\x1a\'.generator.GenerateImageToVideoResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GENERATEIMAGEREQUEST']._serialized_end=104
   _globals['_GENERATEIMAGERESPONSE']._serialized_start=106
   _globals['_GENERATEIMAGERESPONSE']._serialized_end=186
-  _globals['_IMAGESERVICE']._serialized_start=188
-  _globals['_IMAGESERVICE']._serialized_end=286
+  _globals['_GENERATEIMAGETOVIDEOREQUEST']._serialized_start=188
+  _globals['_GENERATEIMAGETOVIDEOREQUEST']._serialized_end=282
+  _globals['_GENERATEIMAGETOVIDEORESPONSE']._serialized_start=284
+  _globals['_GENERATEIMAGETOVIDEORESPONSE']._serialized_end=371
+  _globals['_INFERENCESERVICE']._serialized_start=374
+  _globals['_INFERENCESERVICE']._serialized_end=581
 # @@protoc_insertion_point(module_scope)

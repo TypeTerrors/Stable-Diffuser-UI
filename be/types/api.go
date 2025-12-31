@@ -1,12 +1,24 @@
 package types
 
-type ImagePostRequest struct {
+type TextToImagePostRequest struct {
 	PositivePrompt string `json:"positivePrompt"`
 	NegativePrompt string `json:"negativePrompt"`
 }
 
-type ImagePostResponse struct {
+type TextToImagePostResponse struct {
 	ImageBytes []byte `json:"imageBytes,omitempty"`
+	MimeType   string `json:"mimeType,omitempty"`
+	Filename   string `json:"filename,omitempty"`
+}
+
+type ImageToVideoPostRequest struct {
+	ImageBytes     []byte `json:"imageBytes,omitempty"`
+	PositivePrompt string `json:"positivePrompt"`
+	NegativePrompt string `json:"negativePrompt"`
+}
+
+type ImageToVideoPostResponse struct {
+	VideoBytes []byte `json:"videoBytes,omitempty"`
 	MimeType   string `json:"mimeType,omitempty"`
 	Filename   string `json:"filename,omitempty"`
 }
