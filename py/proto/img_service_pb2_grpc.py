@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import img_service_pb2 as img__service__pb2
+import img_service_pb2 as img__service__pb2
 
 GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
@@ -39,12 +39,45 @@ class ImageServiceStub(object):
                 request_serializer=img__service__pb2.GenerateImageRequest.SerializeToString,
                 response_deserializer=img__service__pb2.GenerateImageResponse.FromString,
                 _registered_method=True)
+        self.ListModels = channel.unary_unary(
+                '/generator.ImageService/ListModels',
+                request_serializer=img__service__pb2.ListModelsRequest.SerializeToString,
+                response_deserializer=img__service__pb2.ListModelResponse.FromString,
+                _registered_method=True)
+        self.SetModel = channel.unary_unary(
+                '/generator.ImageService/SetModel',
+                request_serializer=img__service__pb2.ListModelsRequest.SerializeToString,
+                response_deserializer=img__service__pb2.ListModelResponse.FromString,
+                _registered_method=True)
+        self.SetLora = channel.unary_unary(
+                '/generator.ImageService/SetLora',
+                request_serializer=img__service__pb2.SetLoraRequest.SerializeToString,
+                response_deserializer=img__service__pb2.SetLoraResponse.FromString,
+                _registered_method=True)
 
 
 class ImageServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GenerateImage(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListModels(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SetModel(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SetLora(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +90,21 @@ def add_ImageServiceServicer_to_server(servicer, server):
                     servicer.GenerateImage,
                     request_deserializer=img__service__pb2.GenerateImageRequest.FromString,
                     response_serializer=img__service__pb2.GenerateImageResponse.SerializeToString,
+            ),
+            'ListModels': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListModels,
+                    request_deserializer=img__service__pb2.ListModelsRequest.FromString,
+                    response_serializer=img__service__pb2.ListModelResponse.SerializeToString,
+            ),
+            'SetModel': grpc.unary_unary_rpc_method_handler(
+                    servicer.SetModel,
+                    request_deserializer=img__service__pb2.ListModelsRequest.FromString,
+                    response_serializer=img__service__pb2.ListModelResponse.SerializeToString,
+            ),
+            'SetLora': grpc.unary_unary_rpc_method_handler(
+                    servicer.SetLora,
+                    request_deserializer=img__service__pb2.SetLoraRequest.FromString,
+                    response_serializer=img__service__pb2.SetLoraResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -86,6 +134,87 @@ class ImageService(object):
             '/generator.ImageService/GenerateImage',
             img__service__pb2.GenerateImageRequest.SerializeToString,
             img__service__pb2.GenerateImageResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListModels(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/generator.ImageService/ListModels',
+            img__service__pb2.ListModelsRequest.SerializeToString,
+            img__service__pb2.ListModelResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SetModel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/generator.ImageService/SetModel',
+            img__service__pb2.ListModelsRequest.SerializeToString,
+            img__service__pb2.ListModelResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SetLora(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/generator.ImageService/SetLora',
+            img__service__pb2.SetLoraRequest.SerializeToString,
+            img__service__pb2.SetLoraResponse.FromString,
             options,
             channel_credentials,
             insecure,

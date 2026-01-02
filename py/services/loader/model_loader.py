@@ -3,7 +3,7 @@ import torch
 import io
 from pathlib import Path
 
-class SDXLModel:
+class ModelLoader:
     def __init__(self, weights_path: str, device: str = "cuda"):
         weights = Path(weights_path)
         if not weights.exists():

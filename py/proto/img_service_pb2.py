@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11img_service.proto\x12\tgenerator\"H\n\x14GenerateImageRequest\x12\x17\n\x0fpositive_prompt\x18\x01 \x01(\t\x12\x17\n\x0fnegative_prompt\x18\x02 \x01(\t\"P\n\x15GenerateImageResponse\x12\r\n\x05image\x18\x01 \x01(\x0c\x12\x11\n\tmime_type\x18\x02 \x01(\t\x12\x15\n\rfilename_hint\x18\x03 \x01(\t2b\n\x0cImageService\x12R\n\rGenerateImage\x12\x1f.generator.GenerateImageRequest\x1a .generator.GenerateImageResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11img_service.proto\x12\tgenerator\"H\n\x14GenerateImageRequest\x12\x17\n\x0fpositive_prompt\x18\x01 \x01(\t\x12\x17\n\x0fnegative_prompt\x18\x02 \x01(\t\"P\n\x15GenerateImageResponse\x12\r\n\x05image\x18\x01 \x01(\x0c\x12\x11\n\tmime_type\x18\x02 \x01(\t\x12\x15\n\rfilename_hint\x18\x03 \x01(\t\"\x13\n\x11ListModelsRequest\"(\n\x11ListModelResponse\x12\x13\n\x0bmodel_paths\x18\x01 \x03(\t\"%\n\x0fSetModelRequest\x12\x12\n\nmodel_path\x18\x01 \x01(\t\"&\n\x10SetModelResponse\x12\x12\n\nmodel_path\x18\x01 \x01(\t\"\x12\n\x10ListLorasRequest\"&\n\x11ListLorasResponse\x12\x11\n\tlora_path\x18\x01 \x03(\t\"\'\n\x07SetLora\x12\x0e\n\x06weight\x18\x01 \x01(\x05\x12\x0c\n\x04path\x18\x02 \x01(\t\"3\n\x0eSetLoraRequest\x12!\n\x05loras\x18\x01 \x03(\x0b\x32\x12.generator.SetLora\"4\n\x0fSetLoraResponse\x12!\n\x05loras\x18\x01 \x03(\x0b\x32\x12.generator.SetLora2\xb6\x02\n\x0cImageService\x12R\n\rGenerateImage\x12\x1f.generator.GenerateImageRequest\x1a .generator.GenerateImageResponse\x12H\n\nListModels\x12\x1c.generator.ListModelsRequest\x1a\x1c.generator.ListModelResponse\x12\x46\n\x08SetModel\x12\x1c.generator.ListModelsRequest\x1a\x1c.generator.ListModelResponse\x12@\n\x07SetLora\x12\x19.generator.SetLoraRequest\x1a\x1a.generator.SetLoraResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,24 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GENERATEIMAGEREQUEST']._serialized_end=104
   _globals['_GENERATEIMAGERESPONSE']._serialized_start=106
   _globals['_GENERATEIMAGERESPONSE']._serialized_end=186
-  _globals['_IMAGESERVICE']._serialized_start=188
-  _globals['_IMAGESERVICE']._serialized_end=286
+  _globals['_LISTMODELSREQUEST']._serialized_start=188
+  _globals['_LISTMODELSREQUEST']._serialized_end=207
+  _globals['_LISTMODELRESPONSE']._serialized_start=209
+  _globals['_LISTMODELRESPONSE']._serialized_end=249
+  _globals['_SETMODELREQUEST']._serialized_start=251
+  _globals['_SETMODELREQUEST']._serialized_end=288
+  _globals['_SETMODELRESPONSE']._serialized_start=290
+  _globals['_SETMODELRESPONSE']._serialized_end=328
+  _globals['_LISTLORASREQUEST']._serialized_start=330
+  _globals['_LISTLORASREQUEST']._serialized_end=348
+  _globals['_LISTLORASRESPONSE']._serialized_start=350
+  _globals['_LISTLORASRESPONSE']._serialized_end=388
+  _globals['_SETLORA']._serialized_start=390
+  _globals['_SETLORA']._serialized_end=429
+  _globals['_SETLORAREQUEST']._serialized_start=431
+  _globals['_SETLORAREQUEST']._serialized_end=482
+  _globals['_SETLORARESPONSE']._serialized_start=484
+  _globals['_SETLORARESPONSE']._serialized_end=536
+  _globals['_IMAGESERVICE']._serialized_start=539
+  _globals['_IMAGESERVICE']._serialized_end=849
 # @@protoc_insertion_point(module_scope)

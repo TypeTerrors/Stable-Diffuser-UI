@@ -4,7 +4,9 @@ isort:skip_file
 """
 
 import builtins
+import collections.abc
 import google.protobuf.descriptor
+import google.protobuf.internal.containers
 import google.protobuf.message
 import sys
 import typing
@@ -30,7 +32,8 @@ class GenerateImageRequest(google.protobuf.message.Message):
         positive_prompt: builtins.str = ...,
         negative_prompt: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___GenerateImageRequest: typing_extensions.TypeAlias = GenerateImageRequest
 
@@ -51,6 +54,154 @@ class GenerateImageResponse(google.protobuf.message.Message):
         mime_type: builtins.str = ...,
         filename_hint: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filename_hint", b"filename_hint", "image", b"image", "mime_type", b"mime_type"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["filename_hint", b"filename_hint", "image", b"image", "mime_type", b"mime_type"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___GenerateImageResponse: typing_extensions.TypeAlias = GenerateImageResponse
+
+@typing.final
+class ListModelsRequest(google.protobuf.message.Message):
+    """List Modeles"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+Global___ListModelsRequest: typing_extensions.TypeAlias = ListModelsRequest
+
+@typing.final
+class ListModelResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MODEL_PATHS_FIELD_NUMBER: builtins.int
+    @property
+    def model_paths(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        model_paths: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_paths", b"model_paths"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ListModelResponse: typing_extensions.TypeAlias = ListModelResponse
+
+@typing.final
+class SetModelRequest(google.protobuf.message.Message):
+    """Set Models"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MODEL_PATH_FIELD_NUMBER: builtins.int
+    model_path: builtins.str
+    def __init__(
+        self,
+        *,
+        model_path: builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___SetModelRequest: typing_extensions.TypeAlias = SetModelRequest
+
+@typing.final
+class SetModelResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MODEL_PATH_FIELD_NUMBER: builtins.int
+    model_path: builtins.str
+    def __init__(
+        self,
+        *,
+        model_path: builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___SetModelResponse: typing_extensions.TypeAlias = SetModelResponse
+
+@typing.final
+class ListLorasRequest(google.protobuf.message.Message):
+    """List Loras"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+Global___ListLorasRequest: typing_extensions.TypeAlias = ListLorasRequest
+
+@typing.final
+class ListLorasResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LORA_PATH_FIELD_NUMBER: builtins.int
+    @property
+    def lora_path(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        lora_path: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["lora_path", b"lora_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ListLorasResponse: typing_extensions.TypeAlias = ListLorasResponse
+
+@typing.final
+class SetLora(google.protobuf.message.Message):
+    """Set Loras"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    WEIGHT_FIELD_NUMBER: builtins.int
+    PATH_FIELD_NUMBER: builtins.int
+    weight: builtins.int
+    path: builtins.str
+    def __init__(
+        self,
+        *,
+        weight: builtins.int = ...,
+        path: builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["path", b"path", "weight", b"weight"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___SetLora: typing_extensions.TypeAlias = SetLora
+
+@typing.final
+class SetLoraRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LORAS_FIELD_NUMBER: builtins.int
+    @property
+    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    def __init__(
+        self,
+        *,
+        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___SetLoraRequest: typing_extensions.TypeAlias = SetLoraRequest
+
+@typing.final
+class SetLoraResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LORAS_FIELD_NUMBER: builtins.int
+    @property
+    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    def __init__(
+        self,
+        *,
+        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___SetLoraResponse: typing_extensions.TypeAlias = SetLoraResponse

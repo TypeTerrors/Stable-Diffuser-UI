@@ -6,7 +6,7 @@ from pathlib import Path
 import grpc
 from proto.img_service_pb2_grpc import add_ImageServiceServicer_to_server
 from .image_service import ImageService
-from services.sdxl.model_loader import SDXLModel
+from services.loader.model_loader import ModelLoader
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +34,10 @@ def serve():
 
     model_path = _resolve_model_path()
     logger.info("Loading SDXL model from %s", model_path)
-    model = SDXLModel(model_path)
+    model = ModelLoader(model_path)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
     add_ImageServiceServicer_to_server(
-        ImageService(model),
+        ImageService(logger),
         server=server
     )
     server.add_insecure_port("[::]:50051")

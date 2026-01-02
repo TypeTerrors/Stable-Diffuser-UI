@@ -4,6 +4,9 @@ package generator;
 
 service ImageService {
     rpc GenerateImage (GenerateImageRequest) returns (GenerateImageResponse);
+    rpc ListModels (ListModelsRequest) returns (ListModelResponse);
+    rpc SetModel (ListModelsRequest) returns (ListModelResponse);
+    rpc SetLora (SetLoraRequest) returns (SetLoraResponse);
 }
 
 message GenerateImageRequest {
@@ -15,4 +18,41 @@ message GenerateImageResponse {
     bytes image = 1;
     string mime_type = 2;
     string filename_hint = 3;
+}
+
+// List Modeles
+message ListModelsRequest {}
+
+message ListModelResponse {
+    repeated string model_paths = 1;
+}
+
+// Set Models
+message SetModelRequest {
+    string model_path = 1;
+}
+
+message SetModelResponse {
+    string model_path = 1;
+}
+
+// List Loras
+message ListLorasRequest {}
+
+message ListLorasResponse {
+    repeated string lora_path = 1;
+}
+
+// Set Loras
+message SetLora {
+    int32 weight = 1;
+    string path = 2;
+}
+
+message SetLoraRequest {
+    repeated SetLora loras = 1;
+}
+
+message SetLoraResponse {
+    repeated SetLora loras = 1;
 }
