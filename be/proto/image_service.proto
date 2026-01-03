@@ -8,9 +8,13 @@ service ImageService {
     
     rpc ListModels (ListModelsRequest) returns (ListModelResponse);
     rpc SetModel (SetModelRequest) returns (SetModelResponse);
+    rpc GetCurrentModel (GetCurrentModelRequest) returns (GetCurrentModelResponse);
+    rpc ClearModel (ClearModelRequest) returns (ClearModelResponse);
     
     rpc ListLoras (ListLorasRequest) returns (ListLorasResponse);
     rpc SetLora (SetLoraRequest) returns (SetLoraResponse);
+    rpc GetCurrentLoras (GetCurrentLorasRequest) returns (GetCurrentLorasResponse);
+    rpc ClearLoras (ClearLorasRequest) returns (ClearLorasResponse);
 }
 
 message GenerateImageRequest {
@@ -38,6 +42,31 @@ message SetModelRequest {
 
 message SetModelResponse {
     string model_path = 1;
+}
+
+message GetCurrentModelRequest {}
+
+message GetCurrentModelResponse {
+    string model_path = 1;
+}
+
+message ClearModelRequest {}
+
+message ClearModelResponse {
+    string model_path = 1;
+    repeated SetLora loras = 2;
+}
+
+message GetCurrentLorasRequest {}
+
+message GetCurrentLorasResponse {
+    repeated SetLora loras = 1;
+}
+
+message ClearLorasRequest {}
+
+message ClearLorasResponse {
+    repeated SetLora loras = 1;
 }
 
 // List Loras

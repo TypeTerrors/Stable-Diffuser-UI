@@ -5,6 +5,7 @@ import (
 	"be/types"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -53,7 +54,10 @@ func (a *Api) ListModels() fiber.Handler {
 
 		var files []string
 		extension := "safetensors"
-		root := "./models"
+		root := os.Getenv("MODEL_MOUNT_PATH")
+		if root == "" {
+			root = "/workspace/models"
+		}
 		if !strings.HasPrefix(extension, ".") {
 			extension = "." + extension
 		}
@@ -91,7 +95,10 @@ func (a *Api) ListLoras() fiber.Handler {
 
 		var files []string
 		extension := "safetensors"
-		root := "./loras"
+		root := os.Getenv("LORA_MOUNT_PATH")
+		if root == "" {
+			root = "/workspace/loras"
+		}
 		if !strings.HasPrefix(extension, ".") {
 			extension = "." + extension
 		}
@@ -127,7 +134,7 @@ func (a *Api) ListLoras() fiber.Handler {
 func (a *Api) SetModel() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 
-		var requestBody types.ImagePostRequest
+		var requestBody types.SetModelRequest
 		if err := ctx.BodyParser(&requestBody); err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   err.Error(),
@@ -135,25 +142,24 @@ func (a *Api) SetModel() fiber.Handler {
 			})
 		}
 
-		// now is the time to implement then call the rpc service
-		resp, err := a.rpc.GenerateImage(requestBody.PositivePrompt, requestBody.NegativePrompt)
+		resp, err := a.rpc.SetModel(requestBody.ModelPath)
 		if err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   err.Error(),
-				Message: "python service failed to generate image",
+				Message: "python service failed to set model",
 			})
 		}
 
-		ctx.Set(fiber.HeaderContentType, resp.MimeType)
-		ctx.Set(fiber.HeaderContentDisposition, fmt.Sprintf("inline; filename=%s", resp.FilenameHint))
-		ctx.Response().SetBodyRaw(resp.Image)
-		return nil
+		ctx.Status(fiber.StatusOK)
+		return ctx.JSON(types.SetModelResponse{
+			ModelPath: resp.ModelPath,
+		})
 	}
 }
 func (a *Api) SetLoras() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 
-		var requestBody []proto.SetLora
+		var requestBody []types.SetLora
 		if err := ctx.BodyParser(&requestBody); err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   err.Error(),
@@ -173,21 +179,96 @@ func (a *Api) SetLoras() fiber.Handler {
 		if err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   err.Error(),
-				Message: "python service failed to generate image",
+				Message: "python service failed to apply loras",
 			})
 		}
 
-		var appliedloras []proto.SetLora
+		appliedloras := make([]types.SetLora, 0, len(resp.Loras))
 		for _, applied := range resp.Loras {
-			appliedloras = append(appliedloras, proto.SetLora{
-				Path:   applied.Path,
-				Weight: applied.Weight,
-			})
+			appliedloras = append(appliedloras, types.SetLora{Path: applied.Path, Weight: applied.Weight})
 		}
 
 		ctx.Status(fiber.StatusOK)
 		ctx.JSON(appliedloras)
 
 		return nil
+	}
+}
+
+func (a *Api) CurrentModel() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		resp, err := a.rpc.GetCurrentModel()
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to get current model",
+			})
+		}
+
+		ctx.Status(fiber.StatusOK)
+		return ctx.JSON(types.CurrentModelResponse{ModelPath: resp.ModelPath})
+	}
+}
+
+func (a *Api) CurrentLoras() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		resp, err := a.rpc.GetCurrentLoras()
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to get current loras",
+			})
+		}
+
+		appliedloras := make([]types.SetLora, 0, len(resp.Loras))
+		for _, applied := range resp.Loras {
+			appliedloras = append(appliedloras, types.SetLora{Path: applied.Path, Weight: applied.Weight})
+		}
+
+		ctx.Status(fiber.StatusOK)
+		return ctx.JSON(appliedloras)
+	}
+}
+
+func (a *Api) ClearModel() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		resp, err := a.rpc.ClearModel()
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to clear model",
+			})
+		}
+
+		loras := make([]types.SetLora, 0, len(resp.Loras))
+		for _, l := range resp.Loras {
+			loras = append(loras, types.SetLora{Path: l.Path, Weight: l.Weight})
+		}
+
+		ctx.Status(fiber.StatusOK)
+		return ctx.JSON(types.ClearModelResponse{
+			ModelPath: resp.ModelPath,
+			Loras:     loras,
+		})
+	}
+}
+
+func (a *Api) ClearLoras() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		resp, err := a.rpc.ClearLoras()
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to clear loras",
+			})
+		}
+
+		loras := make([]types.SetLora, 0, len(resp.Loras))
+		for _, l := range resp.Loras {
+			loras = append(loras, types.SetLora{Path: l.Path, Weight: l.Weight})
+		}
+
+		ctx.Status(fiber.StatusOK)
+		return ctx.JSON(loras)
 	}
 }

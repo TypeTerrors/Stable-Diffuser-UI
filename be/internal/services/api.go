@@ -47,4 +47,12 @@ func (a *Api) Start() {
 func (a *Api) addRoutes() {
 	a.server.Add("GET", "/health", a.Health())
 	a.server.Add("POST", "/generateimage", a.GenerateImage())
+	a.server.Add("GET", "/models", a.ListModels())
+	a.server.Add("GET", "/loras", a.ListLoras())
+	a.server.Add("POST", "/setmodel", a.SetModel())
+	a.server.Add("POST", "/setloras", a.SetLoras())
+	a.server.Add("GET", "/currentmodel", a.CurrentModel())
+	a.server.Add("GET", "/currentloras", a.CurrentLoras())
+	a.server.Add("POST", "/clearmodel", a.ClearModel())
+	a.server.Add("POST", "/clearloras", a.ClearLoras())
 }
