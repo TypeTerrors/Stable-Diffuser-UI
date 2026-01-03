@@ -285,9 +285,9 @@ export default function Home() {
   }, [previewSrc]);
 
   const InfoBadge = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-      <Badge variant="secondary" className="text-sm font-semibold">
+    <div className="flex items-center gap-2 rounded-lg border border-white/15 bg-gradient-to-r from-indigo-600/30 via-rose-500/20 to-cyan-400/25 px-3 py-2 shadow-sm">
+      <span className="text-xs uppercase tracking-wide text-indigo-100/80">{label}</span>
+      <Badge variant="secondary" className="bg-white/20 text-sm font-semibold text-white hover:bg-white/30">
         {value}
       </Badge>
     </div>
@@ -324,7 +324,13 @@ export default function Home() {
                   <p className="text-xl font-semibold">{availableLoraPaths.length}</p>
                 </div>
               </div>
-              <Button variant="secondary" size="sm" className="gap-2 self-start" onClick={refreshAll} disabled={busy !== null}>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-2 self-start border border-white/20 bg-gradient-to-r from-cyan-500/80 to-indigo-500/80 text-white hover:from-cyan-400 hover:to-indigo-400"
+                onClick={refreshAll}
+                disabled={busy !== null}
+              >
                 {busy === "refresh" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                 Sync assets
               </Button>
@@ -342,7 +348,13 @@ export default function Home() {
                     Browse folders, apply a model, then layer in LoRAs with adjustable weights.
                   </CardDescription>
                 </div>
-                <Button variant="secondary" size="sm" onClick={refreshAll} disabled={busy !== null} className="gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={refreshAll}
+                  disabled={busy !== null}
+                  className="gap-2 border border-white/20 bg-gradient-to-r from-cyan-500/80 to-indigo-500/80 text-white hover:from-cyan-400 hover:to-indigo-400"
+                >
                   {busy === "refresh" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                   Refresh
                 </Button>
@@ -383,14 +395,14 @@ export default function Home() {
                           variant="outline"
                           role="combobox"
                           aria-expanded={modelPickerOpen}
-                          className="w-full justify-between"
+                          className="w-full justify-between border-indigo-300/50 bg-indigo-800/70 text-indigo-50 hover:bg-indigo-700/70"
                           disabled={busy !== null}
                         >
                           {selectedModelPath ? selectedModelLabel : "Choose a model..."}
                           <ChevronsUpDown className="size-4 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent align="start" className="w-[min(620px,92vw)] border-indigo-500/20 bg-slate-900 p-0 shadow-2xl">
+                      <PopoverContent align="start" className="w-[min(620px,92vw)] border-indigo-500/40 bg-slate-900 p-0 shadow-2xl">
                         <Command className="w-full text-foreground">
                           <div className="p-3 pb-1">
                             <CommandInput placeholder="Search models..." />
@@ -438,14 +450,22 @@ export default function Home() {
                       </PopoverContent>
                     </Popover>
                     <div className="flex flex-wrap gap-2">
-                      <Button onClick={applyModel} disabled={!selectedModelPath || busy !== null} className="gap-2">
+                      <Button
+                        onClick={applyModel}
+                        disabled={!selectedModelPath || busy !== null}
+                        className="gap-2 border border-white/20 bg-gradient-to-r from-indigo-500/90 to-rose-500/80 text-white hover:from-indigo-500 hover:to-rose-400"
+                      >
                         {busy === "setModel" ? <Loader2 className="size-4 animate-spin" /> : null}
                         Apply model
                       </Button>
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="destructive" disabled={busy !== null || !currentModelPath} className="gap-2">
+                          <Button
+                            variant="destructive"
+                            disabled={busy !== null || !currentModelPath}
+                            className="gap-2 bg-rose-600/80 text-white hover:bg-rose-500"
+                          >
                             <Trash2 className="size-4" />
                             Clear model
                           </Button>
@@ -694,9 +714,13 @@ export default function Home() {
               <CardContent className="space-y-4">
                 <Popover open={loraPickerOpen} onOpenChange={setLoraPickerOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="secondary" className="w-full justify-between" disabled={busy !== null}>
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-between border border-indigo-400/50 bg-gradient-to-r from-indigo-600/80 via-rose-500/70 to-cyan-500/70 text-white hover:from-indigo-500 hover:to-cyan-400"
+                      disabled={busy !== null}
+                    >
                       Add LoRA...
-                      <ChevronsUpDown className="size-4 opacity-50" />
+                      <ChevronsUpDown className="size-4 opacity-70" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-[min(720px,94vw)] border-indigo-500/30 bg-slate-900 p-0 shadow-2xl">
@@ -902,7 +926,7 @@ export default function Home() {
                   </Button>
 
                   {status && (
-                    <Alert variant="destructive">
+                    <Alert variant="destructive" className="border-rose-400/40 bg-rose-950/60 text-rose-50">
                       <AlertCircle className="size-4" />
                       <AlertTitle>Request failed</AlertTitle>
                       <AlertDescription>{status}</AlertDescription>
