@@ -294,78 +294,89 @@ export default function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-muted/60 text-foreground">
-      <div className="mx-auto w-full max-w-screen-2xl space-y-8 px-6 py-10">
-        <header className="flex flex-col gap-4 rounded-2xl border bg-card/70 p-6 shadow-sm backdrop-blur">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">TypeTerrors</p>
-              <h1 className="text-3xl font-semibold tracking-tight">AI Diffusion Workbench</h1>
-              <p className="max-w-2xl text-sm text-muted-foreground">
-                Choose a diffuser model, layer in LoRAs with per-weight control, and quickly preview the generated result.
+    <main className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-indigo-900 text-foreground">
+      <div className="mx-auto w-full max-w-screen-2xl space-y-10 px-6 py-10">
+        <header className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-indigo-600/20 via-rose-500/10 to-cyan-400/20 p-8 shadow-2xl backdrop-blur">
+          <div className="absolute -left-10 -top-10 h-48 w-48 rounded-full bg-indigo-500/30 blur-3xl" />
+          <div className="absolute -bottom-12 right-6 h-56 w-56 rounded-full bg-rose-500/25 blur-3xl" />
+          <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-200">TypeTerrors</p>
+              <h1 className="text-4xl font-semibold tracking-tight text-white drop-shadow-sm">Neon Diffusion Studio</h1>
+              <p className="max-w-3xl text-sm text-indigo-100/80">
+                Curate models, stack LoRAs with precise weights, and ship clean generations with live diff + activity views.
               </p>
+              <div className="grid gap-3 md:grid-cols-3">
+                <InfoBadge label="Applied model" value={currentModelLabel || "None"} />
+                <InfoBadge label="Applied LoRAs" value={currentLoras.length.toString()} />
+                <InfoBadge label="API" value={baseUrl.replace(/^https?:\/\//, "")} />
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <InfoBadge label="Applied model" value={currentModelLabel || "None"} />
-              <InfoBadge label="Applied LoRAs" value={currentLoras.length.toString()} />
+            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-white shadow-lg">
+              <p className="text-xs uppercase tracking-wide text-indigo-100">Inventory snapshot</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-white/10 px-3 py-2 text-sm">
+                  <p className="text-indigo-100/80">Models</p>
+                  <p className="text-xl font-semibold">{availableModelPaths.length}</p>
+                </div>
+                <div className="rounded-lg bg-white/10 px-3 py-2 text-sm">
+                  <p className="text-indigo-100/80">LoRAs</p>
+                  <p className="text-xl font-semibold">{availableLoraPaths.length}</p>
+                </div>
+              </div>
+              <Button variant="secondary" size="sm" className="gap-2 self-start" onClick={refreshAll} disabled={busy !== null}>
+                {busy === "refresh" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                Sync assets
+              </Button>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-              API: {baseUrl}
-            </Badge>
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-              Models: {availableModelPaths.length}
-            </Badge>
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-              LoRAs: {availableLoraPaths.length}
-            </Badge>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
           <section className="w-full space-y-6 xl:col-span-5">
-            <Card className="shadow-sm">
+            <Card className="shadow-xl border-white/10 bg-slate-900/70">
               <CardHeader className="flex-row items-start justify-between gap-4">
                 <div>
-                  <CardTitle>Model setup</CardTitle>
-                  <CardDescription className="mt-1 text-sm">
+                  <CardTitle className="text-xl text-white">Model setup</CardTitle>
+                  <CardDescription className="mt-1 text-sm text-indigo-100/80">
                     Browse folders, apply a model, then layer in LoRAs with adjustable weights.
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={refreshAll} disabled={busy !== null} className="gap-2">
+                <Button variant="secondary" size="sm" onClick={refreshAll} disabled={busy !== null} className="gap-2">
                   {busy === "refresh" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                   Refresh
                 </Button>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-3 rounded-xl border bg-gradient-to-r from-primary/5 via-card to-card p-4">
+                <div className="grid gap-3 rounded-xl border border-indigo-500/20 bg-gradient-to-r from-indigo-700/40 via-slate-900 to-indigo-700/30 p-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""}>
+                    <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""} className="bg-indigo-500/30 text-indigo-50">
                       {currentModelPath ? `Model: ${currentModelLabel}` : "Model: none"}
                     </Badge>
-                    <Badge variant="outline">{currentLoras.length} LoRAs applied</Badge>
+                    <Badge variant="outline" className="border-indigo-300/40 text-indigo-50">
+                      {currentLoras.length} LoRAs applied
+                    </Badge>
                     {currentLoras.length > 3 && (
-                      <Badge variant="outline" className="bg-card/70">
+                      <Badge variant="outline" className="bg-indigo-500/20 text-indigo-50">
                         {currentLoras.slice(0, 3).map((l) => l.path.replaceAll("\\", "/").split("/").slice(-1)[0]).join(", ")}
                         {currentLoras.length > 3 ? "…" : ""}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-indigo-100/80">
                     Apply a model first, then select LoRAs and tweak their weights before sending a generate request.
                   </p>
                 </div>
 
-                <div className="space-y-3 rounded-xl border bg-card/70 p-4 shadow-inner">
+                <div className="space-y-3 rounded-xl border border-white/10 bg-slate-800/60 p-4 shadow-inner">
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold">Model</p>
-                      <p className="text-xs text-muted-foreground">Pick the base checkpoint for generation.</p>
+                      <p className="text-sm font-semibold text-white">Model</p>
+                      <p className="text-xs text-indigo-100/80">Pick the base checkpoint for generation.</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Select model</Label>
+                    <Label className="text-xs text-indigo-100/80">Select model</Label>
                     <Popover open={modelPickerOpen} onOpenChange={setModelPickerOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -379,12 +390,12 @@ export default function Home() {
                           <ChevronsUpDown className="size-4 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent align="start" className="w-[min(620px,92vw)] p-0 shadow-lg">
-                        <Command className="w-full">
+                      <PopoverContent align="start" className="w-[min(620px,92vw)] border-indigo-500/20 bg-slate-900 p-0 shadow-2xl">
+                        <Command className="w-full text-foreground">
                           <div className="p-3 pb-1">
                             <CommandInput placeholder="Search models..." />
                           </div>
-                          <CommandEmpty className="px-3 pb-3 text-sm text-muted-foreground">No models found.</CommandEmpty>
+                          <CommandEmpty className="px-3 pb-3 text-sm text-indigo-100/80">No models found.</CommandEmpty>
                           <ScrollArea className="max-h-[420px]">
                             <CommandList>
                               {[...modelGroups.entries()].map(([group, items]) => (
@@ -460,14 +471,14 @@ export default function Home() {
           </section>
 
           <section className="w-full xl:col-span-7">
-            <Card className="sticky top-6 shadow-sm">
+            <Card className="sticky top-6 border-white/10 bg-slate-900/70 shadow-2xl">
               <CardHeader className="gap-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <CardTitle>Output console</CardTitle>
-                    <CardDescription>Switch between live preview, diff, and request logs.</CardDescription>
+                    <CardTitle className="text-white">Output console</CardTitle>
+                    <CardDescription className="text-indigo-100/80">Switch between live preview, diff, and request logs.</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2 rounded-full bg-muted/60 p-1 shadow-inner">
+                  <div className="flex items-center gap-2 rounded-full bg-white/10 p-1 shadow-inner">
                     {(["preview", "diff", "logs"] as const).map((tab) => (
                       <Button
                         key={tab}
@@ -485,21 +496,31 @@ export default function Home() {
               <CardContent className="space-y-4">
                 {previewTab === "preview" && (
                   <div className="space-y-4">
-                    <div className="grid gap-2 rounded-xl border bg-muted/30 p-3">
+                    <div className="grid gap-2 rounded-xl border border-indigo-500/30 bg-indigo-900/50 p-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""}>
+                        <Badge
+                          variant={currentModelPath ? "secondary" : "outline"}
+                          title={currentModelPath || ""}
+                          className="bg-indigo-500/40 text-indigo-50"
+                        >
                           {currentModelPath ? `Model: ${currentModelLabel}` : "Model: none"}
                         </Badge>
                         {currentLoras.length > 0 ? (
                           currentLoras.slice(0, 6).map((l) => (
-                            <Badge key={l.path} variant="outline" title={l.path}>
+                            <Badge key={l.path} variant="outline" title={l.path} className="border-indigo-300/50 text-indigo-50">
                               {l.path.replaceAll("\\", "/").split("/").slice(-1)[0]} ({l.weight})
                             </Badge>
                           ))
                         ) : (
-                          <Badge variant="outline">LoRAs: none</Badge>
+                          <Badge variant="outline" className="border-indigo-300/50 text-indigo-50">
+                            LoRAs: none
+                          </Badge>
                         )}
-                        {currentLoras.length > 6 && <Badge variant="outline">+{currentLoras.length - 6} more</Badge>}
+                        {currentLoras.length > 6 && (
+                          <Badge variant="outline" className="border-indigo-300/50 text-indigo-50">
+                            +{currentLoras.length - 6} more
+                          </Badge>
+                        )}
                       </div>
                     </div>
 
@@ -655,31 +676,35 @@ export default function Home() {
           </section>
 
           <section className="w-full xl:col-span-12">
-            <Card className="shadow-sm">
+            <Card className="border-white/10 bg-slate-900/70 shadow-2xl">
               <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <CardTitle>LoRA lab</CardTitle>
-                  <CardDescription>Pick LoRAs, tune weights, and preview the delta before applying.</CardDescription>
+                  <CardTitle className="text-white">LoRA lab</CardTitle>
+                  <CardDescription className="text-indigo-100/80">Pick LoRAs, tune weights, and preview the delta before applying.</CardDescription>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">{currentLoras.length} applied</Badge>
-                  <Badge variant="outline">{selectedLoraCount} selected</Badge>
+                <div className="flex items-center gap-2 text-xs text-indigo-100/80">
+                  <Badge variant="outline" className="border-indigo-300/50 text-indigo-50">
+                    {currentLoras.length} applied
+                  </Badge>
+                  <Badge variant="outline" className="border-indigo-300/50 text-indigo-50">
+                    {selectedLoraCount} selected
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Popover open={loraPickerOpen} onOpenChange={setLoraPickerOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between" disabled={busy !== null}>
+                    <Button variant="secondary" className="w-full justify-between" disabled={busy !== null}>
                       Add LoRA...
                       <ChevronsUpDown className="size-4 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="w-[min(720px,94vw)] p-0 shadow-lg">
-                    <Command className="w-full">
+                  <PopoverContent align="start" className="w-[min(720px,94vw)] border-indigo-500/30 bg-slate-900 p-0 shadow-2xl">
+                    <Command className="w-full text-foreground">
                       <div className="p-3 pb-1">
                         <CommandInput placeholder="Search LoRAs..." />
                       </div>
-                      <CommandEmpty className="px-3 pb-3 text-sm text-muted-foreground">No LoRAs found.</CommandEmpty>
+                      <CommandEmpty className="px-3 pb-3 text-sm text-indigo-100/80">No LoRAs found.</CommandEmpty>
                       <ScrollArea className="max-h-[420px]">
                         <CommandList>
                           {[...loraGroups.entries()].map(([group, items]) => (
@@ -725,11 +750,11 @@ export default function Home() {
                   </PopoverContent>
                 </Popover>
 
-                <div className="rounded-xl border bg-muted/40 p-4">
+                <div className="rounded-xl border border-indigo-500/20 bg-indigo-900/40 p-4">
                   <ScrollArea className="max-h-[340px] pr-2">
                     <div className="grid gap-3">
                       {selectedLoraCount === 0 ? (
-                        <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed bg-card/80 px-4 py-6 text-center text-sm text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-indigo-400/30 bg-slate-800/70 px-4 py-6 text-center text-sm text-indigo-100/80">
                           <p className="font-medium">No LoRAs selected</p>
                           <p>Add LoRAs above to adjust their weights before applying.</p>
                         </div>
@@ -742,11 +767,11 @@ export default function Home() {
                             return (
                               <div
                                 key={path}
-                                className="grid gap-4 rounded-lg border border-primary/20 bg-card/90 p-4 shadow-sm xl:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)_auto] xl:items-center"
+                                className="grid gap-4 rounded-lg border border-indigo-400/40 bg-slate-800/80 p-4 shadow-lg xl:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)_auto] xl:items-center"
                               >
                                 <div className="min-w-0 space-y-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="break-words font-medium leading-tight" title={path}>
+                                    <span className="break-words font-medium leading-tight text-white" title={path}>
                                       {name}
                                     </span>
                                     {isApplied ? (
@@ -759,12 +784,12 @@ export default function Home() {
                                       </Badge>
                                     )}
                                   </div>
-                                  <p className="break-words text-xs text-muted-foreground" title={path}>
+                                  <p className="break-words text-xs text-indigo-100/80" title={path}>
                                     {path}
                                   </p>
                                 </div>
                                 <div className="flex flex-col gap-1">
-                                  <Label className="text-xs text-muted-foreground">Weight</Label>
+                                  <Label className="text-xs text-indigo-100/80">Weight</Label>
                                   <div className="flex items-center gap-3">
                                     <Input
                                       type="number"
@@ -842,10 +867,10 @@ export default function Home() {
           </section>
 
           <section className="w-full xl:col-span-12">
-            <Card className="shadow-sm">
+            <Card className="border-white/10 bg-slate-900/70 shadow-2xl">
               <CardHeader>
-                <CardTitle>Prompts</CardTitle>
-                <CardDescription>Generation uses the currently applied model and LoRAs.</CardDescription>
+                <CardTitle className="text-white">Prompts</CardTitle>
+                <CardDescription className="text-indigo-100/80">Generation uses the currently applied model and LoRAs.</CardDescription>
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="grid gap-6 lg:grid-cols-2">
@@ -857,7 +882,7 @@ export default function Home() {
                       onChange={(e) => setPositivePrompt(e.target.value)}
                       rows={6}
                     />
-                    <p className="text-xs text-muted-foreground">Use commas to separate concepts or add style hints.</p>
+                    <p className="text-xs text-indigo-100/80">Use commas to separate concepts or add style hints.</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Negative prompt</Label>
@@ -867,7 +892,7 @@ export default function Home() {
                       onChange={(e) => setNegativePrompt(e.target.value)}
                       rows={6}
                     />
-                    <p className="text-xs text-muted-foreground">Optional: reduce artifacts or unwanted styles.</p>
+                    <p className="text-xs text-indigo-100/80">Optional: reduce artifacts or unwanted styles.</p>
                   </div>
                 </CardContent>
                 <CardFooter className="flex-col items-stretch gap-3">
