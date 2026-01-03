@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -23,7 +14,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Check, ChevronsUpDown, Loader2, RefreshCw, Trash2, X } from "lucide-react";
+import Image from "next/image";
 
 type ModelsResponse = { modelPaths: string[] };
 type LorasResponse = { lorapaths: string[] };
@@ -66,6 +67,7 @@ export default function Home() {
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [previewSrc, setPreviewSrc] = useState("/file.svg");
+  const [previewTab, setPreviewTab] = useState<"preview" | "diff" | "logs">("preview");
 
   const [availableModelPaths, setAvailableModelPaths] = useState<string[]>([]);
   const [availableLoraPaths, setAvailableLoraPaths] = useState<string[]>([]);
@@ -126,6 +128,21 @@ export default function Home() {
     const normalized = currentModelPath.replaceAll("\\", "/");
     return normalized.split("/").slice(-1)[0] ?? currentModelPath;
   }, [currentModelPath]);
+  const loraDiff = useMemo(() => {
+    const selectedEntries = Object.entries(selectedLoras);
+    const selectedPaths = new Set(selectedEntries.map(([path]) => path));
+    const appliedPaths = new Set(currentLoras.map((l) => l.path));
+
+    const pendingApply = selectedEntries
+      .filter(([path]) => !appliedPaths.has(path))
+      .map(([path, weight]) => ({ path, weight }));
+    const pendingRemove = currentLoras.filter((l) => !selectedPaths.has(l.path));
+    const matching = selectedEntries
+      .filter(([path]) => appliedPaths.has(path))
+      .map(([path, weight]) => ({ path, weight }));
+
+    return { pendingApply, pendingRemove, matching };
+  }, [currentLoras, selectedLoras]);
 
   const refreshAll = async () => {
     setBusy("refresh");
@@ -267,192 +284,258 @@ export default function Home() {
     };
   }, [previewSrc]);
 
+  const InfoBadge = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+      <Badge variant="secondary" className="text-sm font-semibold">
+        {value}
+      </Badge>
+    </div>
+  );
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 py-10 lg:grid-cols-[420px_1fr]">
-        <section className="w-full space-y-6">
-          <header className="space-y-1">
-            <h1 className="text-3xl font-semibold tracking-tight">TypeTerrors</h1>
-            <p className="text-sm text-muted-foreground">Model + LoRA management and image generation.</p>
-          </header>
+    <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted/40 text-foreground">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10">
+        <header className="flex flex-col gap-4 rounded-2xl border bg-card/70 p-6 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">TypeTerrors</p>
+              <h1 className="text-3xl font-semibold tracking-tight">AI Diffusion Workbench</h1>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Choose a diffuser model, layer in LoRAs with per-weight control, and quickly preview the generated result.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <InfoBadge label="Applied model" value={currentModelLabel || "None"} />
+              <InfoBadge label="Applied LoRAs" value={currentLoras.length.toString()} />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+              API: {baseUrl}
+            </Badge>
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+              Models: {availableModelPaths.length}
+            </Badge>
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+              LoRAs: {availableLoraPaths.length}
+            </Badge>
+          </div>
+        </header>
 
-          <Card>
-            <CardHeader className="flex-row items-start justify-between gap-4">
-              <div>
-                <CardTitle>Configuration</CardTitle>
-                <CardDescription>Browse folders, apply a model, then apply LoRAs.</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={refreshAll} disabled={busy !== null}>
-                {busy === "refresh" ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-                Refresh
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""}>
-                  {currentModelPath ? `Model: ${currentModelLabel}` : "Model: none"}
-                </Badge>
-                <Badge variant="outline">{currentLoras.length} LoRAs applied</Badge>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Select model</div>
-                <Popover open={modelPickerOpen} onOpenChange={setModelPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={modelPickerOpen}
-                      className="w-full justify-between"
-                      disabled={busy !== null}
-                    >
-                      {selectedModelPath ? selectedModelLabel : "Choose a model..."}
-                      <ChevronsUpDown className="opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search models..." />
-                      <CommandEmpty>No models found.</CommandEmpty>
-                      <CommandList>
-                        {[...modelGroups.entries()].map(([group, items]) => (
-                          <CommandGroup key={group} heading={group}>
-                            {items.map((item) => (
-                              <CommandItem
-                                key={item.fullPath}
-                                value={`${group}/${item.name}`}
-                                onSelect={() => {
-                                  setSelectedModelPath(item.fullPath);
-                                  setModelPickerOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={
-                                    selectedModelPath === item.fullPath
-                                      ? "mr-2 size-4 opacity-100"
-                                      : "mr-2 size-4 opacity-0"
-                                  }
-                                />
-                                <span className="truncate">{item.name}</span>
-                                {currentModelPath === item.fullPath && (
-                                  <Badge variant="secondary" className="ml-auto">
-                                    Applied
-                                  </Badge>
-                                )}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        ))}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <div className="flex items-center gap-2">
-                  <Button onClick={applyModel} disabled={!selectedModelPath || busy !== null}>
-                    {busy === "setModel" ? <Loader2 className="animate-spin" /> : null}
-                    Apply model
-                  </Button>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={busy !== null || !currentModelPath}>
-                        <Trash2 />
-                        Clear model
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Clear current model?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This unloads the model and clears all applied LoRAs in the Python worker.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={clearModel}>Clear</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[440px_minmax(0,1fr)]">
+          <section className="w-full space-y-6">
+            <Card className="shadow-sm">
+              <CardHeader className="flex-row items-start justify-between gap-4">
+                <div>
+                  <CardTitle>Configuration</CardTitle>
+                  <CardDescription className="mt-1 text-sm">
+                    Browse folders, apply a model, then layer in LoRAs with adjustable weights.
+                  </CardDescription>
                 </div>
-              </div>
+                <Button variant="outline" size="sm" onClick={refreshAll} disabled={busy !== null} className="gap-2">
+                  {busy === "refresh" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                  Refresh
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-3 rounded-xl border bg-muted/30 p-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""}>
+                      {currentModelPath ? `Model: ${currentModelLabel}` : "Model: none"}
+                    </Badge>
+                    <Badge variant="outline">{currentLoras.length} LoRAs applied</Badge>
+                    {currentLoras.length > 3 && (
+                      <Badge variant="outline" className="bg-card/70">
+                        {currentLoras.slice(0, 3).map((l) => l.path.replaceAll("\\", "/").split("/").slice(-1)[0]).join(", ")}
+                        {currentLoras.length > 3 ? "…" : ""}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Apply a model first, then select LoRAs and tweak their weights before sending a generate request.
+                  </p>
+                </div>
 
-              <Separator />
+                <div className="space-y-3 rounded-xl border bg-card/60 p-4 shadow-inner">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">Model</p>
+                      <p className="text-xs text-muted-foreground">Pick the base checkpoint for generation.</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Select model</Label>
+                    <Popover open={modelPickerOpen} onOpenChange={setModelPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={modelPickerOpen}
+                          className="w-full justify-between"
+                          disabled={busy !== null}
+                        >
+                          {selectedModelPath ? selectedModelLabel : "Choose a model..."}
+                          <ChevronsUpDown className="size-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-[min(520px,90vw)] p-0 shadow-lg">
+                        <Command className="w-full">
+                          <div className="p-3 pb-1">
+                            <CommandInput placeholder="Search models..." />
+                          </div>
+                          <CommandEmpty className="px-3 pb-3 text-sm text-muted-foreground">No models found.</CommandEmpty>
+                          <ScrollArea className="max-h-[360px]">
+                            <CommandList>
+                              {[...modelGroups.entries()].map(([group, items]) => (
+                                <CommandGroup key={group} heading={group}>
+                                  {items.map((item) => (
+                                    <CommandItem
+                                      key={item.fullPath}
+                                      value={`${group}/${item.name}`}
+                                      className="flex items-start gap-2 py-2"
+                                      onSelect={() => {
+                                        setSelectedModelPath(item.fullPath);
+                                        setModelPickerOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={
+                                          selectedModelPath === item.fullPath
+                                            ? "mr-2 size-4 opacity-100"
+                                            : "mr-2 size-4 opacity-0"
+                                        }
+                                      />
+                                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                                        <span className="truncate font-medium">{item.name}</span>
+                                        <span className="truncate text-xs text-muted-foreground">
+                                          {item.subpath ? `${item.group}/${item.subpath}` : item.group}
+                                        </span>
+                                      </div>
+                                      {currentModelPath === item.fullPath && (
+                                        <Badge variant="secondary" className="ml-auto">
+                                          Applied
+                                        </Badge>
+                                      )}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              ))}
+                            </CommandList>
+                          </ScrollArea>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={applyModel} disabled={!selectedModelPath || busy !== null} className="gap-2">
+                        {busy === "setModel" ? <Loader2 className="size-4 animate-spin" /> : null}
+                        Apply model
+                      </Button>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">LoRAs</div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{currentLoras.length} applied</Badge>
-                    <Badge variant="outline">{selectedLoraCount} selected</Badge>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" disabled={busy !== null || !currentModelPath} className="gap-2">
+                            <Trash2 className="size-4" />
+                            Clear model
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Clear current model?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This unloads the model and clears all applied LoRAs in the Python worker.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={clearModel}>Clear</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </div>
 
-                <Popover open={loraPickerOpen} onOpenChange={setLoraPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between" disabled={busy !== null}>
-                      Add LoRA...
-                      <ChevronsUpDown className="opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search LoRAs..." />
-                      <CommandEmpty>No LoRAs found.</CommandEmpty>
-                      <CommandList>
-                        {[...loraGroups.entries()].map(([group, items]) => (
-                          <CommandGroup key={group} heading={group}>
-                            {items.map((item) => (
-                              <CommandItem
-                                key={item.fullPath}
-                                value={`${group}/${item.name}`}
-                                onSelect={() => {
-                                  setSelectedLoras((prev) => {
-                                    if (Object.prototype.hasOwnProperty.call(prev, item.fullPath)) return prev;
-                                    return { ...prev, [item.fullPath]: 1.0 };
-                                  });
-                                  setLoraPickerOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={
-                                    Object.prototype.hasOwnProperty.call(selectedLoras, item.fullPath)
-                                      ? "mr-2 size-4 opacity-100"
-                                      : "mr-2 size-4 opacity-0"
-                                  }
-                                />
-                                <span className="truncate">{item.name}</span>
-                                {currentLoras.some((l) => l.path === item.fullPath) && (
-                                  <Badge variant="secondary" className="ml-auto">
-                                    Applied
-                                  </Badge>
-                                )}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        ))}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Separator />
 
-                <div className="rounded-lg border">
-                  <ScrollArea className="h-56">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead className="w-[110px]">Weight</TableHead>
-                          <TableHead className="w-[90px]">State</TableHead>
-                          <TableHead className="w-[44px]" />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                <div className="space-y-4 rounded-xl border bg-card/60 p-4 shadow-inner">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">LoRAs</p>
+                      <p className="text-xs text-muted-foreground">Select LoRAs and tune their weights independently.</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="outline">{currentLoras.length} applied</Badge>
+                      <Badge variant="outline">{selectedLoraCount} selected</Badge>
+                    </div>
+                  </div>
+
+                  <Popover open={loraPickerOpen} onOpenChange={setLoraPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between" disabled={busy !== null}>
+                        Add LoRA...
+                        <ChevronsUpDown className="size-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[min(520px,90vw)] p-0 shadow-lg">
+                      <Command className="w-full">
+                        <div className="p-3 pb-1">
+                          <CommandInput placeholder="Search LoRAs..." />
+                        </div>
+                        <CommandEmpty className="px-3 pb-3 text-sm text-muted-foreground">No LoRAs found.</CommandEmpty>
+                        <ScrollArea className="max-h-[360px]">
+                          <CommandList>
+                            {[...loraGroups.entries()].map(([group, items]) => (
+                              <CommandGroup key={group} heading={group}>
+                                {items.map((item) => (
+                                  <CommandItem
+                                    key={item.fullPath}
+                                    value={`${group}/${item.name}`}
+                                    className="flex items-start gap-2 py-2"
+                                    onSelect={() => {
+                                      setSelectedLoras((prev) => {
+                                        if (Object.prototype.hasOwnProperty.call(prev, item.fullPath)) return prev;
+                                        return { ...prev, [item.fullPath]: 1.0 };
+                                      });
+                                      setLoraPickerOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={
+                                        Object.prototype.hasOwnProperty.call(selectedLoras, item.fullPath)
+                                          ? "mr-2 size-4 opacity-100"
+                                          : "mr-2 size-4 opacity-0"
+                                      }
+                                    />
+                                    <div className="flex flex-col gap-0.5 overflow-hidden">
+                                      <span className="truncate font-medium">{item.name}</span>
+                                      <span className="truncate text-xs text-muted-foreground">
+                                        {item.subpath ? `${item.group}/${item.subpath}` : item.group}
+                                      </span>
+                                    </div>
+                                    {currentLoras.some((l) => l.path === item.fullPath) && (
+                                      <Badge variant="secondary" className="ml-auto">
+                                        Applied
+                                      </Badge>
+                                    )}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            ))}
+                          </CommandList>
+                        </ScrollArea>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+
+                  <div className="rounded-xl border bg-muted/30 p-3">
+                    <ScrollArea className="h-64 pr-2">
+                      <div className="grid gap-3">
                         {selectedLoraCount === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-muted-foreground">
-                              No LoRAs selected.
-                            </TableCell>
-                          </TableRow>
+                          <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed bg-card/80 px-4 py-6 text-center text-sm text-muted-foreground">
+                            <p className="font-medium">No LoRAs selected</p>
+                            <p>Add LoRAs above to adjust their weights before applying.</p>
+                          </div>
                         ) : (
                           Object.entries(selectedLoras)
                             .sort(([a], [b]) => a.localeCompare(b))
@@ -460,39 +543,55 @@ export default function Home() {
                               const name = path.replaceAll("\\", "/").split("/").slice(-1)[0] ?? path;
                               const isApplied = currentLoras.some((l) => l.path === path);
                               return (
-                                <TableRow key={path}>
-                                  <TableCell className="min-w-0">
-                                    <div className="truncate font-medium" title={path}>
-                                      {name}
+                                <div
+                                  key={path}
+                                  className="grid gap-3 rounded-lg border bg-card/80 p-3 shadow-sm md:grid-cols-[minmax(0,1fr)_170px_110px] md:items-center"
+                                >
+                                  <div className="min-w-0 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="truncate font-medium" title={path}>
+                                        {name}
+                                      </span>
+                                      {isApplied ? (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Applied
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs">
+                                          Selected
+                                        </Badge>
+                                      )}
                                     </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      type="number"
-                                      inputMode="decimal"
-                                      min={0.1}
-                                      step={0.1}
-                                      value={weight}
-                                      onChange={(e) => {
-                                        const next = Number(e.target.value);
-                                        setSelectedLoras((prev) => ({
-                                          ...prev,
-                                          [path]: Number.isFinite(next) ? Math.max(0.1, next) : 1.0,
-                                        }));
-                                      }}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    {isApplied ? (
-                                      <Badge variant="secondary">Applied</Badge>
-                                    ) : (
-                                      <Badge variant="outline">Selected</Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
+                                    <p className="truncate text-xs text-muted-foreground" title={path}>
+                                      {path}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <Label className="text-xs text-muted-foreground">Weight</Label>
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="number"
+                                        inputMode="decimal"
+                                        min={0.1}
+                                        step={0.1}
+                                        value={weight}
+                                        className="w-28 rounded-lg"
+                                        onChange={(e) => {
+                                          const next = Number(e.target.value);
+                                          setSelectedLoras((prev) => ({
+                                            ...prev,
+                                            [path]: Number.isFinite(next) ? Math.max(0.1, next) : 1.0,
+                                          }));
+                                        }}
+                                      />
+                                      <span className="text-xs text-muted-foreground">x</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-end gap-2 md:justify-start">
                                     <Button
                                       variant="ghost"
                                       size="icon"
+                                      className="rounded-full"
                                       onClick={() => {
                                         setSelectedLoras((prev) => {
                                           const next = { ...prev };
@@ -501,139 +600,291 @@ export default function Home() {
                                         });
                                       }}
                                       disabled={busy !== null}
+                                      aria-label={`Remove ${name}`}
                                     >
-                                      <X />
+                                      <X className="size-4" />
                                     </Button>
-                                  </TableCell>
-                                </TableRow>
+                                  </div>
+                                </div>
                               );
                             })
                         )}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                </div>
+                      </div>
+                    </ScrollArea>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <Button onClick={applyLoras} disabled={busy !== null || selectedLoraCount === 0}>
-                    {busy === "setLoras" ? <Loader2 className="animate-spin" /> : null}
-                    Apply LoRAs
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button onClick={applyLoras} disabled={busy !== null || selectedLoraCount === 0} className="gap-2">
+                      {busy === "setLoras" ? <Loader2 className="size-4 animate-spin" /> : null}
+                      Apply LoRAs
+                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={busy !== null || currentLoras.length === 0} className="gap-2">
+                          <Trash2 className="size-4" />
+                          Clear LoRAs
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Clear all LoRAs?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This keeps the current model loaded but removes all applied LoRAs in the Python worker.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={clearLoras}>Clear</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle>Prompts</CardTitle>
+                <CardDescription>Generation uses the currently applied model and LoRAs.</CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Positive prompt</Label>
+                    <Textarea
+                      placeholder="Describe what you want to see..."
+                      value={positivePrompt}
+                      onChange={(e) => setPositivePrompt(e.target.value)}
+                      rows={5}
+                    />
+                    <p className="text-xs text-muted-foreground">Use commas to separate concepts or add style hints.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Negative prompt</Label>
+                    <Textarea
+                      placeholder="Keep these elements out of the frame..."
+                      value={negativePrompt}
+                      onChange={(e) => setNegativePrompt(e.target.value)}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">Optional: reduce artifacts or unwanted styles.</p>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex-col items-stretch gap-3">
+                  <Button type="submit" disabled={busy !== null} className="w-full gap-2">
+                    {busy === "generate" ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Generate
                   </Button>
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={busy !== null || currentLoras.length === 0}>
-                        <Trash2 />
-                        Clear LoRAs
+                  {status && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="size-4" />
+                      <AlertTitle>Request failed</AlertTitle>
+                      <AlertDescription>{status}</AlertDescription>
+                    </Alert>
+                  )}
+                </CardFooter>
+              </form>
+            </Card>
+          </section>
+
+          <section className="w-full space-y-4">
+            <Card className="sticky top-6 shadow-sm">
+              <CardHeader className="gap-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <CardTitle>Output console</CardTitle>
+                    <CardDescription>Switch between live preview, diff, and request logs.</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-full bg-muted/60 p-1 shadow-inner">
+                    {(["preview", "diff", "logs"] as const).map((tab) => (
+                      <Button
+                        key={tab}
+                        variant={previewTab === tab ? "secondary" : "ghost"}
+                        size="sm"
+                        className="capitalize"
+                        onClick={() => setPreviewTab(tab)}
+                      >
+                        {tab}
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Clear all LoRAs?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This keeps the current model loaded but removes all applied LoRAs in the Python worker.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={clearLoras}>Clear</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Prompts</CardTitle>
-              <CardDescription>Generate uses the currently applied model and LoRAs.</CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-3">
-                <Textarea
-                  placeholder="Positive prompt..."
-                  value={positivePrompt}
-                  onChange={(e) => setPositivePrompt(e.target.value)}
-                  rows={5}
-                />
-                <Textarea
-                  placeholder="Negative prompt..."
-                  value={negativePrompt}
-                  onChange={(e) => setNegativePrompt(e.target.value)}
-                  rows={3}
-                />
-              </CardContent>
-              <CardFooter className="flex-col items-stretch gap-3">
-                <Button type="submit" disabled={busy !== null}>
-                  {busy === "generate" ? <Loader2 className="animate-spin" /> : null}
-                  Generate
-                </Button>
-
-                {status && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="size-4" />
-                    <AlertTitle>Request failed</AlertTitle>
-                    <AlertDescription>{status}</AlertDescription>
-                  </Alert>
-                )}
-              </CardFooter>
-            </form>
-          </Card>
-        </section>
-
-        <section className="w-full space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Preview</CardTitle>
-              <CardDescription>Generated output from the worker.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""}>
-                  {currentModelPath ? `Model: ${currentModelLabel}` : "Model: none"}
-                </Badge>
-                {currentLoras.length > 0 ? (
-                  currentLoras.slice(0, 6).map((l) => (
-                    <Badge key={l.path} variant="outline" title={l.path}>
-                      {l.path.replaceAll("\\", "/").split("/").slice(-1)[0]} ({l.weight})
-                    </Badge>
-                  ))
-                ) : (
-                  <Badge variant="outline">LoRAs: none</Badge>
-                )}
-                {currentLoras.length > 6 && <Badge variant="outline">+{currentLoras.length - 6} more</Badge>}
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-center">
-                <div className="relative inline-block overflow-hidden rounded-lg border bg-muted">
-                  <img
-                    key={previewSrc}
-                    src={previewSrc}
-                    alt="Generated preview"
-                    className="block h-auto w-auto max-w-full"
-                    onError={() => setStatus("Preview image failed to load (invalid image bytes or URL).")}
-                  />
-                  {busy === "generate" ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-                      <Loader2 className="h-8 w-8 animate-spin" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {previewTab === "preview" && (
+                  <div className="space-y-4">
+                    <div className="grid gap-2 rounded-xl border bg-muted/30 p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""}>
+                          {currentModelPath ? `Model: ${currentModelLabel}` : "Model: none"}
+                        </Badge>
+                        {currentLoras.length > 0 ? (
+                          currentLoras.slice(0, 6).map((l) => (
+                            <Badge key={l.path} variant="outline" title={l.path}>
+                              {l.path.replaceAll("\\", "/").split("/").slice(-1)[0]} ({l.weight})
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline">LoRAs: none</Badge>
+                        )}
+                        {currentLoras.length > 6 && <Badge variant="outline">+{currentLoras.length - 6} more</Badge>}
+                      </div>
                     </div>
-                  ) : null}
-                </div>
-              </div>
-              {previewSrc.startsWith("blob:") ? (
-                <Button asChild variant="secondary" className="w-full">
-                  <a href={previewSrc} download="generated.png">
-                    Download
-                  </a>
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
-        </section>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-center">
+                      <div className="relative inline-block max-w-3xl overflow-hidden rounded-xl border bg-muted shadow-inner">
+                        <Image
+                          key={previewSrc}
+                          src={previewSrc}
+                          alt="Generated preview"
+                          width={1024}
+                          height={1024}
+                          unoptimized
+                          className="h-auto w-full rounded-lg object-contain"
+                          sizes="(min-width: 1024px) 1024px, 90vw"
+                          onError={() => setStatus("Preview image failed to load (invalid image bytes or URL).")}
+                          priority
+                        />
+                        {busy === "generate" ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    {previewSrc.startsWith("blob:") ? (
+                      <Button asChild variant="secondary" className="w-full">
+                        <a href={previewSrc} download="generated.png">
+                          Download
+                        </a>
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+
+                {previewTab === "diff" && (
+                  <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold">Changes before next generate</h3>
+                      <Badge variant="outline">{selectedLoraCount} LoRAs selected</Badge>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="flex flex-col gap-1 rounded-lg border bg-card/80 p-3 shadow-sm md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Model</p>
+                          <p className="text-sm font-semibold">{selectedModelLabel || "None selected"}</p>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant={currentModelPath === selectedModelPath ? "secondary" : "outline"}>
+                            Current: {currentModelLabel || "None"}
+                          </Badge>
+                          {selectedModelPath && currentModelPath !== selectedModelPath ? (
+                            <Badge variant="outline">Will switch</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2 rounded-lg border bg-card/80 p-3 shadow-sm">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">LoRA delta</p>
+                        <div className="grid gap-2 md:grid-cols-3">
+                          <div className="rounded-md border bg-background/70 p-3">
+                            <p className="text-xs font-semibold text-muted-foreground">Will apply</p>
+                            {loraDiff.pendingApply.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">None</p>
+                            ) : (
+                              <ul className="space-y-1 text-sm">
+                                {loraDiff.pendingApply.map((l) => (
+                                  <li key={l.path} className="flex items-center gap-2">
+                                    <Badge variant="secondary">{l.weight}</Badge>
+                                    <span className="truncate" title={l.path}>
+                                      {l.path.replaceAll("\\", "/").split("/").slice(-1)[0]}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                          <div className="rounded-md border bg-background/70 p-3">
+                            <p className="text-xs font-semibold text-muted-foreground">Already applied</p>
+                            {loraDiff.matching.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">None</p>
+                            ) : (
+                              <ul className="space-y-1 text-sm">
+                                {loraDiff.matching.map((l) => (
+                                  <li key={l.path} className="flex items-center gap-2">
+                                    <Badge variant="outline">{l.weight}</Badge>
+                                    <span className="truncate" title={l.path}>
+                                      {l.path.replaceAll("\\", "/").split("/").slice(-1)[0]}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                          <div className="rounded-md border bg-background/70 p-3">
+                            <p className="text-xs font-semibold text-muted-foreground">Will remove</p>
+                            {loraDiff.pendingRemove.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">None</p>
+                            ) : (
+                              <ul className="space-y-1 text-sm">
+                                {loraDiff.pendingRemove.map((l) => (
+                                  <li key={l.path} className="flex items-center gap-2">
+                                    <Badge variant="destructive">{l.weight}</Badge>
+                                    <span className="truncate" title={l.path}>
+                                      {l.path.replaceAll("\\", "/").split("/").slice(-1)[0]}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {previewTab === "logs" && (
+                  <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-sm font-semibold">Activity log</h3>
+                        <p className="text-xs text-muted-foreground">Last request status and helpful tips.</p>
+                      </div>
+                      <Badge variant="outline">{busy ? `Working: ${busy}` : "Idle"}</Badge>
+                    </div>
+                    <div className="rounded-lg border bg-card/80 p-3 shadow-sm">
+                      {status ? (
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="mt-0.5 size-4 text-destructive" />
+                          <div>
+                            <p className="text-sm font-semibold text-destructive">Latest issue</p>
+                            <p className="text-sm text-destructive">{status}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">No errors reported. You are good to generate.</div>
+                      )}
+                    </div>
+                    <div className="grid gap-2 text-xs text-muted-foreground">
+                      <p className="font-semibold uppercase tracking-wide text-foreground/80">Tips</p>
+                      <ul className="space-y-1 list-disc pl-4">
+                        <li>Refresh to sync model and LoRA catalogs before selecting.</li>
+                        <li>Use the diff tab to confirm weights before applying.</li>
+                        <li>Download the preview after a successful generate.</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        </div>
       </div>
     </main>
   );
