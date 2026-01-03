@@ -23,7 +23,7 @@ type ClearModelResponse struct {
 }
 
 type SetLora struct {
-	Weight int32  `json:"weight"`
+	Weight float32 `json:"weight"`
 	Path   string `json:"path"`
 }
 

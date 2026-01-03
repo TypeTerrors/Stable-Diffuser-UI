@@ -169,6 +169,12 @@ func (a *Api) SetLoras() fiber.Handler {
 
 		lorapaths := make([]*proto.SetLora, 0, len(requestBody))
 		for i := range requestBody {
+			if requestBody[i].Weight < 0.1 {
+				return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+					Error:   "invalid lora weight",
+					Message: "LoRA weight must be >= 0.1",
+				})
+			}
 			lorapaths = append(lorapaths, &proto.SetLora{
 				Weight: requestBody[i].Weight,
 				Path:   requestBody[i].Path,

@@ -408,7 +408,7 @@ export default function Home() {
                                 onSelect={() => {
                                   setSelectedLoras((prev) => {
                                     if (Object.prototype.hasOwnProperty.call(prev, item.fullPath)) return prev;
-                                    return { ...prev, [item.fullPath]: 1 };
+                                    return { ...prev, [item.fullPath]: 1.0 };
                                   });
                                   setLoraPickerOpen(false);
                                 }}
@@ -469,15 +469,15 @@ export default function Home() {
                                   <TableCell>
                                     <Input
                                       type="number"
-                                      inputMode="numeric"
-                                      min={0}
-                                      step={1}
+                                      inputMode="decimal"
+                                      min={0.1}
+                                      step={0.1}
                                       value={weight}
                                       onChange={(e) => {
                                         const next = Number(e.target.value);
                                         setSelectedLoras((prev) => ({
                                           ...prev,
-                                          [path]: Number.isFinite(next) ? next : 1,
+                                          [path]: Number.isFinite(next) ? Math.max(0.1, next) : 1.0,
                                         }));
                                       }}
                                     />

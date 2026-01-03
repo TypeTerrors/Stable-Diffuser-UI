@@ -29,6 +29,22 @@ class ImageService(ImageServiceServicer):
     def __init__(self, log: Logger):
         self.log = log
 
+    def _adapter_name_for_path(self, lora_path: Path) -> str:
+        # PEFT stores adapter modules under names that must be valid torch module keys.
+        # In particular they cannot contain "." (and paths contain "." via ".safetensors").
+        return lora_path.as_posix().lstrip("/").replace("/", "__").replace(".", "_")
+
+    def _adapter_already_loaded(self, adapter_name: str) -> bool:
+        if not hasattr(self, "pipe") or self.pipe is None:
+            return False
+
+        for attr in ("unet", "text_encoder", "text_encoder_2"):
+            module = getattr(self.pipe, attr, None)
+            peft_config = getattr(module, "peft_config", None)
+            if isinstance(peft_config, dict) and adapter_name in peft_config:
+                return True
+        return False
+
     def GenerateImage(self, request: GenerateImageRequest, context):
         if not hasattr(self, "pipe") or self.pipe is None:
             context.abort(grpc.StatusCode.FAILED_PRECONDITION, "Model must be set before generating images.")
@@ -119,21 +135,53 @@ class ImageService(ImageServiceServicer):
         if not hasattr(self, "pipe") or self.pipe is None:
             context.abort(grpc.StatusCode.FAILED_PRECONDITION, "Model must be set before applying loras.")
 
+        try:
+            import peft  # noqa: F401
+        except Exception:
+            context.abort(
+                grpc.StatusCode.FAILED_PRECONDITION,
+                "LoRA support requires the 'peft' package. Rebuild the py image with peft installed.",
+            )
+
         applied: list[SetLora] = []
         adapter_names: list[str] = []
         adapter_weights: list[float] = []
+        seen_adapter_names: set[str] = set()
         for lora in request.loras:
             lora_path = Path(lora.path)
             if not lora_path.exists() or lora_path.is_dir():
                 self.log.warning(f"Failed to find safetensor {lora.path}")
                 continue
+            if float(lora.weight) < 0.1:
+                context.abort(grpc.StatusCode.INVALID_ARGUMENT, "LoRA weight must be >= 0.1")
 
             try:
-                adapter_name = str(lora_path)
-                self.pipe.load_lora_weights(str(lora_path), adapter_name=adapter_name)
+                adapter_name = self._adapter_name_for_path(lora_path)
+                if adapter_name in seen_adapter_names:
+                    continue
+                seen_adapter_names.add(adapter_name)
+
+                # Allow reapplying the same LoRA across requests by reusing the already-loaded adapter.
+                if not self._adapter_already_loaded(adapter_name):
+                    self.pipe.load_lora_weights(str(lora_path), adapter_name=adapter_name)
                 adapter_names.append(adapter_name)
                 adapter_weights.append(float(lora.weight))
                 applied.append(SetLora(weight=lora.weight, path=str(lora_path)))
+            except ValueError as e:
+                if "PEFT backend is required" in str(e):
+                    self.log.exception(f"Failed to apply LoRa {lora.path}")
+                    context.abort(
+                        grpc.StatusCode.FAILED_PRECONDITION,
+                        "Diffusers requires the PEFT backend for LoRA loading; install 'peft' in the py container.",
+                    )
+                if "already in use in the model" in str(e):
+                    # If diffusers/peft reports the name is taken, it usually means this adapter was loaded previously.
+                    # Treat it as reusable and just activate it.
+                    adapter_names.append(adapter_name)
+                    adapter_weights.append(float(lora.weight))
+                    applied.append(SetLora(weight=lora.weight, path=str(lora_path)))
+                    continue
+                self.log.exception(f"Failed to apply LoRa {lora.path}")
             except Exception:
                 self.log.exception(f"Failed to apply LoRa {lora.path}")
 

@@ -78,7 +78,7 @@ message ListLorasResponse {
 
 // Set Loras
 message SetLora {
-    int32 weight = 1;
+    float weight = 1;
     string path = 2;
 }
 
