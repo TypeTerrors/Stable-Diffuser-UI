@@ -76,7 +76,7 @@ img-generator
 - **Devcontainer:** `py/.devcontainer` builds the NVIDIA base image, binds the repo into `/workspace`, and enables GPU access inside VS Code.
 - **Models:** default path `/workspace/models/sd_xl_base_1.0.safetensors`. The compose file mounts `./py/models` into that location; drop your `.safetensors` there.
 
-**Important:** the worker expects a GPU (or change `device="cuda"` to `cpu` but expect slow inference). Loading happens once at startup so requests reuse the same pipeline.
+**Important:** the worker expects a GPU (or change `device="cuda"` to `cpu` but expect slow inference). The worker starts without a model loaded; you must call `SetModel` before `GenerateImage`.
 
 ---
 
@@ -121,8 +121,8 @@ API_PORT=8080
 RPC_PEER=py
 RPC_PORT=50051
 PY_PORT=50051
-PY_MODEL_PATH=/workspace/models/sd_xl_base_1.0.safetensors
 MODEL_MOUNT_PATH=/workspace/models
+LORA_MOUNT_PATH=/workspace/loras
 FE_PORT=3000
 NEXT_PUBLIC_BASE_URL=http://localhost:8080
 ```

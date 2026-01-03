@@ -123,6 +123,116 @@ class SetModelResponse(google.protobuf.message.Message):
 Global___SetModelResponse: typing_extensions.TypeAlias = SetModelResponse
 
 @typing.final
+class GetCurrentModelRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+Global___GetCurrentModelRequest: typing_extensions.TypeAlias = GetCurrentModelRequest
+
+@typing.final
+class GetCurrentModelResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MODEL_PATH_FIELD_NUMBER: builtins.int
+    model_path: builtins.str
+    def __init__(
+        self,
+        *,
+        model_path: builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___GetCurrentModelResponse: typing_extensions.TypeAlias = GetCurrentModelResponse
+
+@typing.final
+class ClearModelRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+Global___ClearModelRequest: typing_extensions.TypeAlias = ClearModelRequest
+
+@typing.final
+class ClearModelResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MODEL_PATH_FIELD_NUMBER: builtins.int
+    LORAS_FIELD_NUMBER: builtins.int
+    model_path: builtins.str
+    @property
+    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    def __init__(
+        self,
+        *,
+        model_path: builtins.str = ...,
+        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras", "model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ClearModelResponse: typing_extensions.TypeAlias = ClearModelResponse
+
+@typing.final
+class GetCurrentLorasRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+Global___GetCurrentLorasRequest: typing_extensions.TypeAlias = GetCurrentLorasRequest
+
+@typing.final
+class GetCurrentLorasResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LORAS_FIELD_NUMBER: builtins.int
+    @property
+    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    def __init__(
+        self,
+        *,
+        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___GetCurrentLorasResponse: typing_extensions.TypeAlias = GetCurrentLorasResponse
+
+@typing.final
+class ClearLorasRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+Global___ClearLorasRequest: typing_extensions.TypeAlias = ClearLorasRequest
+
+@typing.final
+class ClearLorasResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LORAS_FIELD_NUMBER: builtins.int
+    @property
+    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    def __init__(
+        self,
+        *,
+        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ClearLorasResponse: typing_extensions.TypeAlias = ClearLorasResponse
+
+@typing.final
 class ListLorasRequest(google.protobuf.message.Message):
     """List Loras"""
 
