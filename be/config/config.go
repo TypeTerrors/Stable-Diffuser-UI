@@ -13,8 +13,12 @@ type Config struct {
 	AppName string `yaml:"app_name"`
 	Env     string `yaml:"env"`
 	Rpc     struct {
-		Peer string `yaml:"peer"`
-		Port string `yaml:"port"`
+		DialTimeout  string `yaml:"dial_timeout"`
+		I2VTimeout   string `yaml:"i2v_timeout"`
+		MaxMsgSizeMB int    `yaml:"max_msg_size_mb"`
+		Peer         string `yaml:"peer"`
+		Port         string `yaml:"port"`
+		T2ITimeout   string `yaml:"t2i_timeout"`
 	} `yaml:"rpc"`
 }
 
@@ -30,6 +34,21 @@ func (c Config) Validate() error {
 	}
 	if c.Rpc.Port == "" {
 		return fmt.Errorf("rpc.port is required")
+	}
+	if c.Rpc.Peer == "" {
+		return fmt.Errorf("rpc.peer is required")
+	}
+	if c.Rpc.DialTimeout == "" {
+		return fmt.Errorf("rpc.dial_timeout is required")
+	}
+	if c.Rpc.T2ITimeout == "" {
+		return fmt.Errorf("rpc.t2i_timeout is required")
+	}
+	if c.Rpc.I2VTimeout == "" {
+		return fmt.Errorf("rpc.i2v_timeout is required")
+	}
+	if c.Rpc.MaxMsgSizeMB <= 0 {
+		return fmt.Errorf("rpc.max_msg_size_mb must be > 0")
 	}
 	return nil
 }

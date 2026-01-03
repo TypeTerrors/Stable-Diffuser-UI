@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (a *Api) Health() fiber.Handler {
@@ -32,7 +34,12 @@ func (a *Api) GenerateTextToImage() fiber.Handler {
 		// now is the time to implement then call the rpc service
 		resp, err := a.rpc.GenerateTextToImage(requestBody.PositivePrompt, requestBody.NegativePrompt)
 		if err != nil {
-			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+			code := status.Code(err)
+			httpStatus := fiber.StatusBadGateway
+			if code == codes.DeadlineExceeded {
+				httpStatus = fiber.StatusGatewayTimeout
+			}
+			return ctx.Status(httpStatus).JSON(types.ErrorResponse{
 				Error:   err.Error(),
 				Message: "python service failed to generate image",
 			})
@@ -58,7 +65,12 @@ func (a *Api) GenerateImageToVideo() fiber.Handler {
 
 		resp, err := a.rpc.GenerateImageToVideo(requestBody.ImageBytes, requestBody.PositivePrompt, requestBody.NegativePrompt)
 		if err != nil {
-			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+			code := status.Code(err)
+			httpStatus := fiber.StatusBadGateway
+			if code == codes.DeadlineExceeded {
+				httpStatus = fiber.StatusGatewayTimeout
+			}
+			return ctx.Status(httpStatus).JSON(types.ErrorResponse{
 				Error:   err.Error(),
 				Message: "python service failed to generate video",
 			})

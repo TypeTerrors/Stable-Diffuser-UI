@@ -8,4 +8,8 @@ api:
 
 rpc:
   port: ${RPC_PORT:-50051} # validate:required,min=1,max=65535
-  peer: ${RPC_PEER} # validate:reuqired
+  peer: ${RPC_PEER} # validate:required
+  dial_timeout: ${RPC_DIAL_TIMEOUT:-240s}
+  t2i_timeout: ${RPC_T2I_TIMEOUT:-240s}
+  i2v_timeout: ${RPC_I2V_TIMEOUT:-30m}
+  max_msg_size_mb: ${RPC_MAX_MSG_SIZE_MB:-256}

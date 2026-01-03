@@ -11,36 +11,66 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type Rpc struct {
-	ctx    *context.Context
-	cancel context.CancelFunc
-	conn   *grpc.ClientConn
+type Config struct {
+	Peer            string
+	Port            string
+	DialTimeout     time.Duration
+	T2ITimeout      time.Duration
+	I2VTimeout      time.Duration
+	MaxMsgSizeBytes int
 }
 
-func NewRpc(peer, port string) (*Rpc, error) {
+type Rpc struct {
+	conn       *grpc.ClientConn
+	t2iTimeout time.Duration
+	i2vTimeout time.Duration
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+func NewRpc(cfg Config) (*Rpc, error) {
+	if cfg.Peer == "" {
+		return nil, fmt.Errorf("rpc peer is required")
+	}
+	if cfg.Port == "" {
+		return nil, fmt.Errorf("rpc port is required")
+	}
+	if cfg.DialTimeout <= 0 {
+		return nil, fmt.Errorf("rpc dial timeout must be > 0")
+	}
+	if cfg.T2ITimeout <= 0 {
+		return nil, fmt.Errorf("rpc t2i timeout must be > 0")
+	}
+	if cfg.I2VTimeout <= 0 {
+		return nil, fmt.Errorf("rpc i2v timeout must be > 0")
+	}
+	if cfg.MaxMsgSizeBytes <= 0 {
+		return nil, fmt.Errorf("rpc max message size must be > 0")
+	}
 
-	conn, err := grpc.DialContext(
-		ctx,
-		fmt.Sprint(peer, ":", port),
+	conn, err := grpc.Dial(
+		fmt.Sprint(cfg.Peer, ":", cfg.Port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			MinConnectTimeout: cfg.DialTimeout,
+		}),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(cfg.MaxMsgSizeBytes),
+			grpc.MaxCallSendMsgSize(cfg.MaxMsgSizeBytes),
+			grpc.WaitForReady(true),
+		),
 	)
 	if err != nil {
-		cancel()
 		return nil, fmt.Errorf("error creating newrpc: %w", err)
 	}
 
 	return &Rpc{
-		ctx:    &ctx,
-		conn:   conn,
-		cancel: cancel,
+		conn:       conn,
+		t2iTimeout: cfg.T2ITimeout,
+		i2vTimeout: cfg.I2VTimeout,
 	}, nil
 }
 
 func (r *Rpc) GenerateTextToImage(positivePrompt, negativePrompt string) (*proto.GenerateImageResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), r.t2iTimeout)
 	defer cancel()
 
 	client := proto.NewInferenceServiceClient(r.conn)
@@ -56,7 +86,7 @@ func (r *Rpc) GenerateTextToImage(positivePrompt, negativePrompt string) (*proto
 }
 
 func (r *Rpc) GenerateImageToVideo(imageBytes []byte, positivePrompt, negativePrompt string) (*proto.GenerateImageToVideoResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), r.i2vTimeout)
 	defer cancel()
 
 	client := proto.NewInferenceServiceClient(r.conn)
@@ -74,6 +104,5 @@ func (r *Rpc) GenerateImageToVideo(imageBytes []byte, positivePrompt, negativePr
 }
 
 func (r *Rpc) Close() {
-	r.cancel()
-	r.conn.Close()
+	_ = r.conn.Close()
 }

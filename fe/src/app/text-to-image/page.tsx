@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { apiUrl, parseFilename } from "@/lib/api";
@@ -121,12 +120,12 @@ export default function Home() {
 
         <section className="w-full lg:w-1/2">
           <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <AspectRatio ratio={1}>
-              <div className="relative flex items-center justify-center overflow-hidden rounded-lg bg-muted">
+            <div className="flex items-center justify-center">
+              <div className="relative inline-block overflow-hidden rounded-lg border bg-muted">
                 <img
                   src={previewSrc}
                   alt="Generated preview"
-                  className="h-full w-full object-cover"
+                  className="block h-auto w-auto max-w-full"
                 />
                 {isLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/60">
@@ -134,7 +133,7 @@ export default function Home() {
                   </div>
                 ) : null}
               </div>
-            </AspectRatio>
+            </div>
             {previewSrc.startsWith("blob:") ? (
               <Button asChild variant="secondary" className="mt-4 w-full">
                 <a href={previewSrc} download={downloadName}>

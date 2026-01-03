@@ -137,6 +137,11 @@ API_ALLOWED_ORIGINS=*
 RPC_PEER=py
 RPC_PORT=50051
 PY_PORT=50051
+# Optional: gRPC tuning (video inference can take a long time)
+RPC_DIAL_TIMEOUT=240s
+RPC_T2I_TIMEOUT=240s
+RPC_I2V_TIMEOUT=30m
+RPC_MAX_MSG_SIZE_MB=256
 # Used by docker-compose to set the container's MODEL_PATH (text-to-image fallback).
 PY_MODEL_PATH=/workspace/models/<your-txt2img-model>.safetensors
 # Optional: override text-to-image model path (otherwise uses MODEL_PATH).

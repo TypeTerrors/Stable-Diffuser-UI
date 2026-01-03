@@ -2,6 +2,8 @@ import io
 import json
 import os
 import logging
+import time
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -135,6 +137,9 @@ class TextToImageModel:
         steps = int(os.getenv("MODEL_NUM_INFERENCE_STEPS", str(self._default_steps)))
         guidance = float(os.getenv("MODEL_GUIDANCE_SCALE", str(self._default_guidance)))
 
+        start_time = time.perf_counter()
+        logger.info("incoming request...")
+
         if self._is_zimage:
             image = self.pipe(
                 prompt=positive_prompt,
@@ -180,4 +185,8 @@ class TextToImageModel:
 
         buf = io.BytesIO()
         image.save(buf, format="png")
+
+        elapsed_time = time.perf_counter() - start_time
+        logger.info(f"T2I generation took {timedelta(seconds=elapsed_time)}")
+
         return buf.getvalue(), "image/png", self._default_filename
