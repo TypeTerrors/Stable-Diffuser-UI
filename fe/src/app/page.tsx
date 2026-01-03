@@ -545,11 +545,11 @@ export default function Home() {
                               return (
                                 <div
                                   key={path}
-                                  className="grid gap-3 rounded-lg border bg-card/80 p-3 shadow-sm md:grid-cols-[minmax(0,1fr)_170px_110px] md:items-center"
+                                  className="grid gap-4 rounded-lg border border-primary/10 bg-card/90 p-4 shadow-sm md:grid-cols-[minmax(0,1.3fr)_220px_auto] md:items-center"
                                 >
                                   <div className="min-w-0 space-y-1">
                                     <div className="flex items-center gap-2">
-                                      <span className="truncate font-medium" title={path}>
+                                      <span className="break-words font-medium leading-tight" title={path}>
                                         {name}
                                       </span>
                                       {isApplied ? (
@@ -562,7 +562,7 @@ export default function Home() {
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="truncate text-xs text-muted-foreground" title={path}>
+                                    <p className="break-words text-xs text-muted-foreground" title={path}>
                                       {path}
                                     </p>
                                   </div>
@@ -575,7 +575,7 @@ export default function Home() {
                                         min={0.1}
                                         step={0.1}
                                         value={weight}
-                                        className="w-28 rounded-lg"
+                                        className="w-full max-w-[180px] rounded-lg"
                                         onChange={(e) => {
                                           const next = Number(e.target.value);
                                           setSelectedLoras((prev) => ({
