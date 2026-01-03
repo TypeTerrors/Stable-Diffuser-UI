@@ -349,27 +349,27 @@ export default function Home() {
                   </CardDescription>
                 </div>
                 <Button
-                  variant="secondary"
+                  variant="default"
                   size="sm"
                   onClick={refreshAll}
                   disabled={busy !== null}
-                  className="gap-2 border border-white/20 bg-gradient-to-r from-cyan-500/80 to-indigo-500/80 text-white hover:from-cyan-400 hover:to-indigo-400"
+                  className="gap-2 border border-white/20 bg-gradient-to-r from-cyan-500/90 to-indigo-500/90 text-white shadow-md hover:from-cyan-400 hover:to-indigo-400"
                 >
                   {busy === "refresh" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                   Refresh
                 </Button>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-3 rounded-xl border border-indigo-500/20 bg-gradient-to-r from-indigo-700/40 via-slate-900 to-indigo-700/30 p-4">
+                <div className="grid gap-3 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-800/60 via-slate-900 to-cyan-900/50 p-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""} className="bg-indigo-500/30 text-indigo-50">
+                    <Badge variant={currentModelPath ? "secondary" : "outline"} title={currentModelPath || ""} className="border border-indigo-300/50 bg-indigo-500/30 text-indigo-50">
                       {currentModelPath ? `Model: ${currentModelLabel}` : "Model: none"}
                     </Badge>
-                    <Badge variant="outline" className="border-indigo-300/40 text-indigo-50">
+                    <Badge variant="outline" className="border-indigo-300/40 bg-indigo-500/20 text-indigo-50">
                       {currentLoras.length} LoRAs applied
                     </Badge>
                     {currentLoras.length > 3 && (
-                      <Badge variant="outline" className="bg-indigo-500/20 text-indigo-50">
+                      <Badge variant="outline" className="border-indigo-300/40 bg-indigo-500/20 text-indigo-50">
                         {currentLoras.slice(0, 3).map((l) => l.path.replaceAll("\\", "/").split("/").slice(-1)[0]).join(", ")}
                         {currentLoras.length > 3 ? "…" : ""}
                       </Badge>
@@ -392,10 +392,10 @@ export default function Home() {
                     <Popover open={modelPickerOpen} onOpenChange={setModelPickerOpen}>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           role="combobox"
                           aria-expanded={modelPickerOpen}
-                          className="w-full justify-between border-indigo-300/50 bg-indigo-800/70 text-indigo-50 hover:bg-indigo-700/70"
+                          className="w-full justify-between border border-indigo-300/60 bg-gradient-to-r from-indigo-700/80 to-cyan-600/70 text-indigo-50 shadow-inner hover:from-indigo-600/80 hover:to-cyan-500/70"
                           disabled={busy !== null}
                         >
                           {selectedModelPath ? selectedModelLabel : "Choose a model..."}
@@ -453,7 +453,7 @@ export default function Home() {
                       <Button
                         onClick={applyModel}
                         disabled={!selectedModelPath || busy !== null}
-                        className="gap-2 border border-white/20 bg-gradient-to-r from-indigo-500/90 to-rose-500/80 text-white hover:from-indigo-500 hover:to-rose-400"
+                        className="gap-2 border border-white/20 bg-gradient-to-r from-indigo-500/90 to-rose-500/80 text-white shadow-md hover:from-indigo-500 hover:to-rose-400"
                       >
                         {busy === "setModel" ? <Loader2 className="size-4 animate-spin" /> : null}
                         Apply model
@@ -462,13 +462,13 @@ export default function Home() {
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
-                            variant="destructive"
-                            disabled={busy !== null || !currentModelPath}
-                            className="gap-2 bg-rose-600/80 text-white hover:bg-rose-500"
-                          >
-                            <Trash2 className="size-4" />
-                            Clear model
-                          </Button>
+                          variant="destructive"
+                          disabled={busy !== null || !currentModelPath}
+                          className="gap-2 bg-rose-600/90 text-white hover:bg-rose-500"
+                        >
+                          <Trash2 className="size-4" />
+                          Clear model
+                        </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
@@ -498,13 +498,17 @@ export default function Home() {
                     <CardTitle className="text-white">Output console</CardTitle>
                     <CardDescription className="text-indigo-100/80">Switch between live preview, diff, and request logs.</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2 rounded-full bg-white/10 p-1 shadow-inner">
+                  <div className="flex items-center gap-2 rounded-full border border-white/15 bg-gradient-to-r from-indigo-700/80 to-cyan-600/70 p-1 shadow-inner">
                     {(["preview", "diff", "logs"] as const).map((tab) => (
                       <Button
                         key={tab}
-                        variant={previewTab === tab ? "secondary" : "ghost"}
+                        variant="ghost"
                         size="sm"
-                        className="capitalize"
+                        className={
+                          previewTab === tab
+                            ? "capitalize bg-white/20 text-white hover:bg-white/30"
+                            : "capitalize text-indigo-100 hover:bg-white/10"
+                        }
                         onClick={() => setPreviewTab(tab)}
                       >
                         {tab}
@@ -516,7 +520,7 @@ export default function Home() {
               <CardContent className="space-y-4">
                 {previewTab === "preview" && (
                   <div className="space-y-4">
-                    <div className="grid gap-2 rounded-xl border border-indigo-500/30 bg-indigo-900/50 p-3">
+                    <div className="grid gap-2 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/70 via-slate-900/70 to-cyan-900/60 p-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge
                           variant={currentModelPath ? "secondary" : "outline"}
@@ -703,10 +707,10 @@ export default function Home() {
                   <CardDescription className="text-indigo-100/80">Pick LoRAs, tune weights, and preview the delta before applying.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-indigo-100/80">
-                  <Badge variant="outline" className="border-indigo-300/50 text-indigo-50">
+                  <Badge variant="outline" className="border-indigo-300/50 bg-indigo-500/20 text-indigo-50">
                     {currentLoras.length} applied
                   </Badge>
-                  <Badge variant="outline" className="border-indigo-300/50 text-indigo-50">
+                  <Badge variant="outline" className="border-indigo-300/50 bg-indigo-500/20 text-indigo-50">
                     {selectedLoraCount} selected
                   </Badge>
                 </div>
@@ -715,8 +719,8 @@ export default function Home() {
                 <Popover open={loraPickerOpen} onOpenChange={setLoraPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="secondary"
-                      className="w-full justify-between border border-indigo-400/50 bg-gradient-to-r from-indigo-600/80 via-rose-500/70 to-cyan-500/70 text-white hover:from-indigo-500 hover:to-cyan-400"
+                      variant="ghost"
+                      className="w-full justify-between border border-indigo-400/60 bg-gradient-to-r from-indigo-700/80 via-rose-600/70 to-cyan-600/70 text-white shadow-inner hover:from-indigo-600/80 hover:to-cyan-500/70"
                       disabled={busy !== null}
                     >
                       Add LoRA...
