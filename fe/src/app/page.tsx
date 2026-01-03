@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -67,7 +65,7 @@ async function fetchJson<T>(url: URL, init?: RequestInit): Promise<T> {
 export default function Home() {
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [previewSrc, setPreviewSrc] = useState("");
+  const [previewSrc, setPreviewSrc] = useState("/file.svg");
 
   const [availableModelPaths, setAvailableModelPaths] = useState<string[]>([]);
   const [availableLoraPaths, setAvailableLoraPaths] = useState<string[]>([]);
@@ -156,6 +154,12 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (previewSrc?.startsWith("blob:")) URL.revokeObjectURL(previewSrc);
+    };
+  }, [previewSrc]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy("generate");
@@ -178,6 +182,7 @@ export default function Home() {
 
       const blob = await responseImage.blob();
       const objectUrl = URL.createObjectURL(blob);
+      if (previewSrc?.startsWith("blob:")) URL.revokeObjectURL(previewSrc);
       setPreviewSrc(objectUrl);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
@@ -545,34 +550,36 @@ export default function Home() {
               <CardTitle>Prompts</CardTitle>
               <CardDescription>Generate uses the currently applied model and LoRAs.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                placeholder="Positive prompt..."
-                value={positivePrompt}
-                onChange={(e) => setPositivePrompt(e.target.value)}
-                rows={5}
-              />
-              <Textarea
-                placeholder="Negative prompt..."
-                value={negativePrompt}
-                onChange={(e) => setNegativePrompt(e.target.value)}
-                rows={3}
-              />
-            </CardContent>
-            <CardFooter className="flex-col items-stretch gap-3">
-              <Button onClick={(e) => handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)} disabled={busy !== null}>
-                {busy === "generate" ? <Loader2 className="animate-spin" /> : null}
-                Generate
-              </Button>
+            <form onSubmit={handleSubmit}>
+              <CardContent className="space-y-3">
+                <Textarea
+                  placeholder="Positive prompt..."
+                  value={positivePrompt}
+                  onChange={(e) => setPositivePrompt(e.target.value)}
+                  rows={5}
+                />
+                <Textarea
+                  placeholder="Negative prompt..."
+                  value={negativePrompt}
+                  onChange={(e) => setNegativePrompt(e.target.value)}
+                  rows={3}
+                />
+              </CardContent>
+              <CardFooter className="flex-col items-stretch gap-3">
+                <Button type="submit" disabled={busy !== null}>
+                  {busy === "generate" ? <Loader2 className="animate-spin" /> : null}
+                  Generate
+                </Button>
 
-              {status && (
-                <Alert variant="destructive">
-                  <AlertCircle className="size-4" />
-                  <AlertTitle>Request failed</AlertTitle>
-                  <AlertDescription>{status}</AlertDescription>
-                </Alert>
-              )}
-            </CardFooter>
+                {status && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertTitle>Request failed</AlertTitle>
+                    <AlertDescription>{status}</AlertDescription>
+                  </Alert>
+                )}
+              </CardFooter>
+            </form>
           </Card>
         </section>
 
@@ -601,20 +608,29 @@ export default function Home() {
 
               <Separator />
 
-              <AspectRatio ratio={1}>
-                <div className="bg-muted relative flex items-center justify-center overflow-hidden rounded-lg">
-                  {previewSrc ? (
-                    <Image src={previewSrc} alt="Generated preview" fill className="object-cover" priority />
-                  ) : (
-                    <div className="space-y-1 px-6 text-center">
-                      <div className="text-sm font-medium">No preview yet</div>
-                      <div className="text-xs text-muted-foreground">
-                        Apply a model, optionally apply LoRAs, then generate.
-                      </div>
+              <div className="flex items-center justify-center">
+                <div className="relative inline-block overflow-hidden rounded-lg border bg-muted">
+                  <img
+                    key={previewSrc}
+                    src={previewSrc}
+                    alt="Generated preview"
+                    className="block h-auto w-auto max-w-full"
+                    onError={() => setStatus("Preview image failed to load (invalid image bytes or URL).")}
+                  />
+                  {busy === "generate" ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                      <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
-                  )}
+                  ) : null}
                 </div>
-              </AspectRatio>
+              </div>
+              {previewSrc.startsWith("blob:") ? (
+                <Button asChild variant="secondary" className="w-full">
+                  <a href={previewSrc} download="generated.png">
+                    Download
+                  </a>
+                </Button>
+              ) : null}
             </CardContent>
           </Card>
         </section>

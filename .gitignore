@@ -2,3 +2,6 @@ fe/node_modules
 py/models
 py/.devcontainer
 *.pyc
+py/models
+py/loras
+*.env

@@ -6,7 +6,9 @@ services:
     container_name: img-generator-py
     env_file: .env
     environment:
+      MODEL_PATH: ${PY_MODEL_PATH}
       PYTHONUNBUFFERED: "1"
+      PYTHONPATH: "/app"
     volumes:
       - ./py:/app
       - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}:ro
@@ -16,10 +18,15 @@ services:
     ports:
       - "${PY_PORT}:50051"
     healthcheck:
-      test: ["CMD", "python", "-c", "import grpc, socket; s=grpc.insecure_channel('localhost:50051'); s.close()"]
+      test: ["CMD", "python", "-c", "import grpc; ch=grpc.insecure_channel('localhost:50051'); grpc.channel_ready_future(ch).result(timeout=2); ch.close()"]
       interval: 30s
       timeout: 5s
       retries: 3
+    shm_size: 1gb
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
     deploy:
       resources:
         reservations:
@@ -33,17 +40,17 @@ services:
     container_name: img-generator-be
     depends_on:
       py:
-        condition: service_started
+        condition: service_healthy
     env_file: .env
-    volumes:
-      - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}:ro
-      - ./py/loras:${LORA_MOUNT_PATH:-/workspace/loras}:ro
     environment:
       APP_ENV: ${APP_ENV}
       API_PORT: ${API_PORT}
       API_ALLOWED_ORIGINS: ${API_ALLOWED_ORIGINS}
       RPC_PEER: ${RPC_PEER}
       RPC_PORT: ${RPC_PORT}
+    volumes:
+      - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}:ro
+      - ./py/loras:${LORA_MOUNT_PATH:-/workspace/loras}:ro
     ports:
       - "${API_PORT}:${API_PORT}"
 
