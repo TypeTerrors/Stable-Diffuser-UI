@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle, Check, ChevronsUpDown, Loader2, RefreshCw, Trash2, X } from "lucide-react";
+import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsUpDown, Loader2, RefreshCw, Trash2, X } from "lucide-react";
 
 type ModelsResponse = { modelPaths: string[] };
 type LorasResponse = { lorapaths: string[] };
@@ -68,7 +68,9 @@ async function fetchJson<T>(url: URL, init?: RequestInit): Promise<T> {
 export default function Home() {
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [previewSrc, setPreviewSrc] = useState("/file.svg");
+  const [previewState, setPreviewState] = useState<{ items: string[]; index: number }>({ items: [], index: -1 });
+  const previewItemsRef = useRef<string[]>([]);
+  const previewSrc = previewState.index >= 0 ? previewState.items[previewState.index] ?? "/file.svg" : "/file.svg";
 
   const [availableModelPaths, setAvailableModelPaths] = useState<string[]>([]);
   const [availableLoraPaths, setAvailableLoraPaths] = useState<string[]>([]);
@@ -158,10 +160,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    previewItemsRef.current = previewState.items;
+  }, [previewState.items]);
+
+  useEffect(() => {
     return () => {
-      if (previewSrc?.startsWith("blob:")) URL.revokeObjectURL(previewSrc);
+      for (const src of previewItemsRef.current) {
+        if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+      }
     };
-  }, [previewSrc]);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -185,13 +193,33 @@ export default function Home() {
 
       const blob = await responseImage.blob();
       const objectUrl = URL.createObjectURL(blob);
-      if (previewSrc?.startsWith("blob:")) URL.revokeObjectURL(previewSrc);
-      setPreviewSrc(objectUrl);
+      setPreviewState((prev) => {
+        const maxHistory = 50;
+        let items = [...prev.items, objectUrl];
+        if (items.length > maxHistory) {
+          const overflow = items.length - maxHistory;
+          const removed = items.slice(0, overflow);
+          for (const src of removed) {
+            if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+          }
+          items = items.slice(overflow);
+        }
+        return { items, index: items.length - 1 };
+      });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(null);
     }
+  };
+
+  const clearPreviewHistory = () => {
+    setPreviewState((prev) => {
+      for (const src of prev.items) {
+        if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+      }
+      return { items: [], index: -1 };
+    });
   };
 
   const applyModel = async () => {
@@ -261,14 +289,6 @@ export default function Home() {
       setBusy(null);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (previewSrc) {
-        URL.revokeObjectURL(previewSrc);
-      }
-    };
-  }, [previewSrc]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-muted/50 to-background text-foreground">
@@ -654,6 +674,60 @@ export default function Home() {
                     </div>
                   </AspectRatio>
                 </div>
+                {previewState.items.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label="Previous image"
+                        disabled={previewState.index <= 0}
+                        onClick={() =>
+                          setPreviewState((prev) => ({ ...prev, index: Math.max(0, prev.index - 1) }))
+                        }
+                      >
+                        <ChevronLeft />
+                      </Button>
+                      <input
+                        type="range"
+                        className="w-full"
+                        aria-label="Image history slider"
+                        min={0}
+                        max={Math.max(0, previewState.items.length - 1)}
+                        step={1}
+                        value={previewState.index}
+                        onChange={(e) => setPreviewState((prev) => ({ ...prev, index: Number(e.target.value) }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label="Next image"
+                        disabled={previewState.index >= previewState.items.length - 1}
+                        onClick={() =>
+                          setPreviewState((prev) => ({
+                            ...prev,
+                            index: Math.min(prev.items.length - 1, prev.index + 1),
+                          }))
+                        }
+                      >
+                        <ChevronRight />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        {previewState.index + 1} / {previewState.items.length}
+                      </span>
+                      <Button type="button" variant="ghost" size="sm" onClick={clearPreviewHistory}>
+                        <Trash2 className="size-4" />
+                        Clear history
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Generate an image to start a history.</p>
+                )}
                 {previewSrc.startsWith("blob:") ? (
                   <Button asChild variant="secondary" className="w-full">
                     <a href={previewSrc} download="generated.png">
