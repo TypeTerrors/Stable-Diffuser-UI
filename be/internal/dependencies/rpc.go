@@ -55,6 +55,88 @@ func (r *Rpc) GenerateImage(positivePrompt, negativePrompt string) (*proto.Gener
 	return resp, nil
 }
 
+func (r *Rpc) SetModel(modelPath string) (*proto.SetModelResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.SetModel(ctx, &proto.SetModelRequest{
+		ModelPath: modelPath,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Rpc) GetCurrentModel() (*proto.GetCurrentModelResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.GetCurrentModel(ctx, &proto.GetCurrentModelRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Rpc) GetCurrentLoras() (*proto.GetCurrentLorasResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.GetCurrentLoras(ctx, &proto.GetCurrentLorasRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Rpc) ClearModel() (*proto.ClearModelResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.ClearModel(ctx, &proto.ClearModelRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Rpc) ClearLoras() (*proto.ClearLorasResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.ClearLoras(ctx, &proto.ClearLorasRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (r *Rpc) SetLoras(loraPaths []*proto.SetLora) (*proto.SetLoraResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.SetLora(ctx, &proto.SetLoraRequest{
+		Loras: loraPaths,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (r *Rpc) Close() {
 	r.cancel()
 	r.conn.Close()
