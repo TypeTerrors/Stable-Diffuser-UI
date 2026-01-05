@@ -3,6 +3,7 @@ import math
 import os
 from logging import Logger
 from pathlib import Path
+import torch_tensorrt  # noqa: F401
 
 import grpc
 import torch
@@ -25,11 +26,13 @@ from proto.img_service_pb2 import (
     SetModelResponse,
 )
 from proto.img_service_pb2_grpc import ImageServiceServicer
+from services.metrics.perf_metrics import PerfMetricsService
 
 class ImageService(ImageServiceServicer):
 
     def __init__(self, log: Logger):
         self.log = log
+        self.perf = PerfMetricsService(log)
 
     def _execution_device_for_pipe(self) -> torch.device:
         device = getattr(self.pipe, "_execution_device", None)
@@ -260,46 +263,51 @@ class ImageService(ImageServiceServicer):
         if not hasattr(self, "pipe") or self.pipe is None:
             context.abort(grpc.StatusCode.FAILED_PRECONDITION, "Model must be set before generating images.")
 
-        try:
-            (
-                prompt_embeds,
-                negative_prompt_embeds,
-                pooled_prompt_embeds,
-                negative_pooled_prompt_embeds,
-            ) = self._encode_long_prompts_for_sdxl(request.positive_prompt, request.negative_prompt)
-            prompt = None
-            negative_prompt = None
-        except Exception:
-            self.log.exception("Failed to encode long prompts; falling back to raw string prompts (may truncate).")
-            prompt_embeds = None
-            negative_prompt_embeds = None
-            pooled_prompt_embeds = None
-            negative_pooled_prompt_embeds = None
-            prompt = request.positive_prompt
-            negative_prompt = request.negative_prompt
+        use_trt = self._use_tensorrt()
 
-        image = self.pipe(
-            height=1024,
-            width=1024,
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            prompt_embeds=prompt_embeds,
-            negative_prompt_embeds=negative_prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=30,
-            guidance_scale=7,
-        ).images[0]
+        with self.perf.scope("generate.encode_prompt", {"use_trt": use_trt}):
+            try:
+                (
+                    prompt_embeds,
+                    negative_prompt_embeds,
+                    pooled_prompt_embeds,
+                    negative_pooled_prompt_embeds,
+                ) = self._encode_long_prompts_for_sdxl(request.positive_prompt, request.negative_prompt)
+                prompt = None
+                negative_prompt = None
+            except Exception:
+                self.log.exception("Failed to encode long prompts; falling back to raw string prompts (may truncate).")
+                prompt_embeds = None
+                negative_prompt_embeds = None
+                pooled_prompt_embeds = None
+                negative_pooled_prompt_embeds = None
+                prompt = request.positive_prompt
+                negative_prompt = request.negative_prompt
 
-        buf = io.BytesIO()
-        image.save(buf, format="png")
+        with self.perf.scope("generate.pipe", {"use_trt": use_trt, "steps": 30, "cfg": 7, "h": 1024, "w": 1024}):
+            image = self.pipe(
+                height=1024,
+                width=1024,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                prompt_embeds=prompt_embeds,
+                negative_prompt_embeds=negative_prompt_embeds,
+                pooled_prompt_embeds=pooled_prompt_embeds,
+                negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+                num_inference_steps=30,
+                guidance_scale=7,
+            ).images[0]
+
+        with self.perf.scope("generate.encode_png", {"use_trt": use_trt}):
+            buf = io.BytesIO()
+            image.save(buf, format="png")
 
         return GenerateImageResponse(
             image=buf.getvalue(),
             mime_type="image/png",
-            filename_hint="sdxl.png"
+            filename_hint=("tensor.png" if use_trt else "sdxl.png"),
         )
-            
+
     def SetModel(self, request: SetModelRequest, context):
         model_path = Path(request.model_path)
         if not model_path.exists() or model_path.is_dir():
@@ -308,16 +316,41 @@ class ImageService(ImageServiceServicer):
         if hasattr(self, "pipe") and self.pipe is not None:
             del self.pipe
 
-        self.pipe = StableDiffusionXLPipeline.from_single_file(
-            str(model_path),
-            torch_dtype=torch.float16,
-        ).to("cuda")
+        use_trt = self._use_tensorrt()
+
+        # Always log load so you can compare modes consistently
+        with self.perf.scope("set_model.load", {"model_path": str(model_path), "use_trt": use_trt}):
+            self.pipe = StableDiffusionXLPipeline.from_single_file(
+                str(model_path),
+                torch_dtype=torch.float16,
+            ).to("cuda")
+
+        if use_trt:
+            try:
+                with self.perf.scope("set_model.compile_unet", {"backend": "torch_tensorrt", "dynamic": False}):
+                    self.pipe.unet = torch.compile(
+                        self.pipe.unet,
+                        backend="torch_tensorrt",
+                        dynamic=False,
+                        options={"truncate_long_and_double": True},
+                    )
+
+                with self.perf.scope("set_model.warmup", {"steps": 2, "h": 1024, "w": 1024}):
+                    with torch.inference_mode():
+                        _ = self.pipe(
+                            prompt="warmup",
+                            num_inference_steps=2,
+                            guidance_scale=0.0,
+                            height=1024,
+                            width=1024,
+                        ).images[0]
+            except Exception:
+                # Don’t brick model loading if TRT compile fails
+                self.log.exception("TensorRT compile failed; continuing with non-TRT pipeline")
+
         self.model_path = str(model_path)
         self.current_loras = []
-
-        return SetModelResponse(
-            model_path=str(model_path)
-        )
+        return SetModelResponse(model_path=str(model_path))
 
     def GetCurrentModel(self, request: GetCurrentModelRequest, context):
         return GetCurrentModelResponse(model_path=getattr(self, "model_path", ""))
