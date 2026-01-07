@@ -55,4 +55,8 @@ func (a *Api) addRoutes() {
 	a.server.Add("GET", "/currentloras", a.CurrentLoras())
 	a.server.Add("POST", "/clearmodel", a.ClearModel())
 	a.server.Add("POST", "/clearloras", a.ClearLoras())
+
+	// websocket connection
+	a.server.Use("/ws", a.WsUpgrade())
+	a.server.Get("/ws/:id", a.Notifications())
 }
