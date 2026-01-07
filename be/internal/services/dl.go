@@ -118,8 +118,11 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 	}
 
 	downloadLink := modelInfo.DownloadUrl
-	baseModel := modelInfo.BaseModel
-	modelType := modelInfo.Model.Type
+	baseModel := dashifySpaces(modelInfo.BaseModel)
+	modelType := ""
+	if modelInfo.Model.Type != nil {
+		modelType = dashifySpaces(*modelInfo.Model.Type)
+	}
 
 	if downloadLink == "" {
 		d.hub.SendTo(job.ClientID, WSEvent{
@@ -181,37 +184,52 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 }
 
 func (d *DownloaderService) createFolderpath(baseModel, modelType string) string {
-
-	baseDir := strings.TrimSpace(d.baseDir)
-	if baseDir == "" {
+	baseModel = strings.TrimSpace(baseModel)
+	if baseModel == "" {
 		return ""
 	}
 
-	baseDir = filepath.Clean(baseDir)
-
 	modelTypeLower := strings.ToLower(strings.TrimSpace(modelType))
-	typeDir := ""
 	switch {
 	case strings.Contains(modelTypeLower, "checkpoint"):
-		typeDir = "models"
+		modelRoot, _ := rootsFromConfig(d.baseDir)
+		if strings.TrimSpace(modelRoot) == "" {
+			return ""
+		}
+		return filepath.Join(modelRoot, baseModel)
 	case strings.Contains(modelTypeLower, "lora"):
-		typeDir = "loras"
+		_, loraRoot := rootsFromConfig(d.baseDir)
+		if strings.TrimSpace(loraRoot) == "" {
+			return ""
+		}
+		return filepath.Join(loraRoot, baseModel)
 	default:
 		return ""
 	}
+}
 
-	// If baseDir points at one type (e.g. /workspace/models) and we're downloading the other,
-	// put it in the sibling directory (/workspace/loras).
-	baseName := filepath.Base(baseDir)
-	if (typeDir == "loras" && strings.EqualFold(baseName, "models")) || (typeDir == "models" && strings.EqualFold(baseName, "loras")) {
-		baseDir = filepath.Dir(baseDir)
+func rootsFromConfig(baseDir string) (modelRoot, loraRoot string) {
+	baseDir = filepath.Clean(strings.TrimSpace(baseDir))
+	if baseDir == "" {
+		return "", ""
 	}
 
-	if !strings.EqualFold(filepath.Base(baseDir), typeDir) {
-		baseDir = filepath.Join(baseDir, typeDir)
+	switch strings.ToLower(filepath.Base(baseDir)) {
+	case "models":
+		return baseDir, filepath.Join(filepath.Dir(baseDir), "loras")
+	case "loras":
+		return filepath.Join(filepath.Dir(baseDir), "models"), baseDir
+	default:
+		return filepath.Join(baseDir, "models"), filepath.Join(baseDir, "loras")
 	}
+}
 
-	return filepath.Join(baseDir, baseModel)
+func dashifySpaces(s string) string {
+	parts := strings.Fields(strings.TrimSpace(s))
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, "-")
 }
 
 func (d *DownloaderService) CreateFolder(folderPath string) error {

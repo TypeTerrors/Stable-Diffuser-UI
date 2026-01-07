@@ -125,6 +125,8 @@ func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
 		}
 	}
 
+	filename = sanitizeDownloadedFilename(filename)
+
 	tmpPath := filepath.Join(filePath, filename+".part")
 	finalPath := filepath.Join(filePath, filename)
 
@@ -150,4 +152,31 @@ func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
 		return err
 	}
 	return nil
+}
+
+func sanitizeDownloadedFilename(filename string) string {
+	filename = strings.TrimSpace(filename)
+	if filename == "" {
+		return "model.safetensors"
+	}
+
+	// Prevent any path traversal / nested paths from the server.
+	filename = filepath.Base(filename)
+
+	ext := filepath.Ext(filename)
+	stem := strings.TrimSuffix(filename, ext)
+	if ext == "" {
+		ext = ".safetensors"
+	}
+
+	// Requirements: no spaces or periods in the stem.
+	stem = strings.Join(strings.Fields(stem), "-")
+	stem = strings.ReplaceAll(stem, ".", "-")
+	stem = strings.Trim(stem, "-")
+	if stem == "" {
+		stem = "model"
+	}
+
+	ext = strings.ReplaceAll(ext, " ", "")
+	return stem + ext
 }
