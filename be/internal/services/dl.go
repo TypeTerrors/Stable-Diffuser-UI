@@ -54,7 +54,7 @@ func (d *DownloaderService) Run(ctx context.Context) {
 	go func() {
 		for job := range d.queue {
 			d.group.Go(func() error {
-				d.runJob(ctx, job)
+				d.runJob(job)
 				return nil
 			})
 		}
