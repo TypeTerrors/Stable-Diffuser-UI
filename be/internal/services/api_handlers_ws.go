@@ -3,6 +3,7 @@ package services
 import (
 	"strings"
 
+	"github.com/charmbracelet/log"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 )
@@ -20,6 +21,8 @@ func (a *Api) Notifications() fiber.Handler {
 			return
 		}
 
+		log.Info("ws connected", "component", "ws", "clientId", clientId)
+
 		c := &WSClient{
 			id:   clientId,
 			conn: conn,
@@ -35,6 +38,7 @@ func (a *Api) Notifications() fiber.Handler {
 			if a.hub != nil {
 				a.hub.Remove(clientId)
 			}
+			log.Info("ws disconnected", "component", "ws", "clientId", clientId)
 		})
 	})
 }

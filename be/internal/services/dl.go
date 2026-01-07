@@ -5,12 +5,14 @@ import (
 	"be/internal/clients/huggingface"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/charmbracelet/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -41,15 +43,31 @@ type DownloaderService struct {
 	closing bool
 	client  *huggingface.Hf
 	ctx     context.Context
+	logger  *log.Logger
+
+	inflight map[string]string // key: clientId:modelVersionId => jobId
+}
+
+type AlreadyQueuedError struct {
+	JobID string
+}
+
+func (e AlreadyQueuedError) Error() string {
+	if e.JobID == "" {
+		return "download already queued"
+	}
+	return "download already queued: " + e.JobID
 }
 
 func NewDownloaderService(hub *Hub, config config.ApiDlConfig, ctx context.Context) *DownloaderService {
 	s := &DownloaderService{
-		hub:     hub,
-		baseDir: config.BaseDir,
-		queue:   make(chan DownloadJob, config.QueueSize),
-		client:  huggingface.NewHfClient(ctx, config.Client),
-		ctx:     ctx,
+		hub:      hub,
+		baseDir:  config.BaseDir,
+		queue:    make(chan DownloadJob, config.QueueSize),
+		client:   huggingface.NewHfClient(ctx, config.Client),
+		ctx:      ctx,
+		logger:   log.With("component", "downloader"),
+		inflight: map[string]string{},
 	}
 	s.group.SetLimit(config.MaxConcurrent) // battery slots
 	return s
@@ -76,13 +94,20 @@ func (d *DownloaderService) Run() {
 }
 
 func (d *DownloaderService) Enqueue(job DownloadJob) error {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if d.closing {
 		return ErrDownloaderShuttingDown
 	}
+
+	key := d.inflightKey(job.ClientID, job.ModelVersionID)
+	if existing, ok := d.inflight[key]; ok {
+		return AlreadyQueuedError{JobID: existing}
+	}
 	select {
 	case d.queue <- job:
+		d.inflight[key] = job.JobID
+		d.logger.Debug("download enqueued", "jobId", job.JobID, "clientId", job.ClientID, "modelVersionId", job.ModelVersionID)
 		return nil
 	default:
 		return ErrDownloadQueueFull
@@ -95,19 +120,56 @@ func (s *DownloaderService) Shutdown() {
 		s.closing = true
 		close(s.queue)
 	}
+	s.inflight = map[string]string{}
 	s.mu.Unlock()
 	_ = s.group.Wait()
 }
 
+func (d *DownloaderService) inflightKey(clientID string, modelVersionID int64) string {
+	return fmt.Sprintf("%s:%d", clientID, modelVersionID)
+}
+
+func (d *DownloaderService) clearInflight(job DownloadJob) {
+	d.mu.Lock()
+	delete(d.inflight, d.inflightKey(job.ClientID, job.ModelVersionID))
+	d.mu.Unlock()
+}
+
+func preferredFilename(modelInfo huggingface.ModelVersionIdResponse) string {
+	for _, f := range modelInfo.Files {
+		if f.Primary && strings.TrimSpace(f.Name) != "" {
+			return f.Name
+		}
+	}
+	for _, f := range modelInfo.Files {
+		if strings.TrimSpace(f.Name) != "" {
+			return f.Name
+		}
+	}
+	return ""
+}
+
+func fileExistsNonEmpty(path string) bool {
+	fi, err := os.Stat(path)
+	if err != nil || fi == nil {
+		return false
+	}
+	return !fi.IsDir() && fi.Size() > 0
+}
+
 // WS only emits completion/failure.
 func (d *DownloaderService) runJob(job DownloadJob) {
+	defer d.clearInflight(job)
 	if d.ctx.Err() != nil {
 		return
 	}
 
+	d.logger.Info("download started", "jobId", job.JobID, "clientId", job.ClientID, "modelVersionId", job.ModelVersionID)
+
 	modelVersionID := strconv.FormatInt(job.ModelVersionID, 10)
 	modelInfo, err := d.client.GetModelVersionInfo(modelVersionID)
 	if err != nil {
+		d.logger.Error("download failed fetching model info", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "err", err)
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
@@ -125,6 +187,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 	}
 
 	if downloadLink == "" {
+		d.logger.Error("download failed missing download link", "jobId", job.JobID, "modelVersionId", job.ModelVersionID)
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
@@ -134,6 +197,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		return
 	}
 	if baseModel == "" {
+		d.logger.Error("download failed missing basemodel", "jobId", job.JobID, "modelVersionId", job.ModelVersionID)
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
@@ -145,26 +209,43 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 
 	var folderPath string
 	if folderPath = d.createFolderpath(baseModel, modelType); folderPath == "" {
+		d.logger.Error("download failed invalid folder path", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "baseModel", baseModel, "modelType", modelType)
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
 			ModelVersionID: job.ModelVersionID,
 			Message:        "failed to create folder path",
+		})
+		return
+	}
+
+	candidate := huggingface.SanitizeDownloadedFilename(preferredFilename(modelInfo))
+	finalPath := filepath.Join(folderPath, candidate)
+	if fileExistsNonEmpty(finalPath) {
+		d.logger.Info("download skipped; file exists", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "file", finalPath)
+		d.hub.SendTo(job.ClientID, WSEvent{
+			Type:           "download.completed",
+			JobID:          job.JobID,
+			ModelVersionID: job.ModelVersionID,
+			Message:        "already downloaded",
+			Path:           folderPath,
 		})
 		return
 	}
 
 	if err := d.CreateFolder(folderPath); err != nil {
+		d.logger.Error("download failed creating folder", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "folder", folderPath, "err", err)
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
 			ModelVersionID: job.ModelVersionID,
-			Message:        "failed to create folder path",
+			Message:        "failed to create folder",
 		})
 		return
 	}
 
 	if err := d.client.DownloadModelIntoFolder(downloadLink, folderPath); err != nil {
+		d.logger.Error("download failed downloading model", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "folder", folderPath, "err", err)
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
@@ -174,6 +255,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		return
 	}
 
+	d.logger.Info("download completed", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "folder", folderPath)
 	d.hub.SendTo(job.ClientID, WSEvent{
 		Type:           "download.completed",
 		JobID:          job.JobID,

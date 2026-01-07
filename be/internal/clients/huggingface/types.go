@@ -1,9 +1,6 @@
 package huggingface
 
-import (
-	"encoding/json"
-	"time"
-)
+import "encoding/json"
 
 type ModelIdResponse struct {
 	Id   int64  `json:"id"`
@@ -25,12 +22,12 @@ type ModelVersionSummary struct {
 }
 
 type ModelVersionIdResponse struct {
-	Id          int64      `json:"id"`
-	ModelId     int64      `json:"modelId"`
-	Name        string     `json:"name"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
-	PublishedAt *time.Time `json:"publishedAt,omitempty"`
+	Id          int64         `json:"id"`
+	ModelId     int64         `json:"modelId"`
+	Name        string        `json:"name"`
+	CreatedAt   FlexibleTime  `json:"createdAt"`
+	UpdatedAt   FlexibleTime  `json:"updatedAt"`
+	PublishedAt *FlexibleTime `json:"publishedAt,omitempty"`
 
 	TrainedWords []string `json:"trainedWords"`
 
@@ -72,7 +69,7 @@ type ModelVersionFile struct {
 	PickleScanMessage *string                  `json:"pickleScanMessage,omitempty"`
 	VirusScanResult   *string                  `json:"virusScanResult,omitempty"`
 	VirusScanMessage  *string                  `json:"virusScanMessage,omitempty"`
-	ScannedAt         *time.Time               `json:"scannedAt,omitempty"`
+	ScannedAt         *FlexibleTime            `json:"scannedAt,omitempty"`
 	Hashes            ModelVersionFileHashes   `json:"hashes"`
 	Primary           bool                     `json:"primary"`
 	DownloadUrl       string                   `json:"downloadUrl"`

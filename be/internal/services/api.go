@@ -18,6 +18,7 @@ type Api struct {
 	allowedOrigins string
 	hub            *Hub
 	dl             *DownloaderService
+	logger         *log.Logger
 }
 
 func NewApi(rpc *dependencies.Rpc, config config.ApiConfig, hub *Hub, dl *DownloaderService) *Api {
@@ -32,12 +33,15 @@ func NewApi(rpc *dependencies.Rpc, config config.ApiConfig, hub *Hub, dl *Downlo
 		allowedOrigins: config.AllowedOrigins,
 		hub:            hub,
 		dl:             dl,
+		logger:         log.With("component", "api"),
 	}
 }
 
 func (a *Api) Start() error {
 
 	allowCredentials := a.allowedOrigins != "*"
+
+	a.server.Use(RequestLogger())
 
 	a.server.Use(cors.New(cors.Config{
 		AllowOrigins:     a.allowedOrigins,
@@ -47,6 +51,8 @@ func (a *Api) Start() error {
 	}))
 
 	a.addRoutes()
+
+	a.logger.Info("api starting", "port", a.port, "allowedOrigins", a.allowedOrigins, "allowCredentials", allowCredentials)
 
 	if err := a.server.Listen(fmt.Sprint(":", a.port)); err != nil {
 		log.Error("api stopped", "err", err)

@@ -3,6 +3,8 @@ package services
 import (
 	"encoding/json"
 	"sync"
+
+	"github.com/charmbracelet/log"
 )
 
 type WSEvent struct {
@@ -16,6 +18,7 @@ type WSEvent struct {
 type Hub struct {
 	mu      sync.RWMutex
 	clients map[string]*WSClient
+	logger  *log.Logger
 }
 
 func safeCloseBytes(ch chan []byte) {
@@ -28,6 +31,7 @@ func safeCloseBytes(ch chan []byte) {
 func NewHub() *Hub {
 	return &Hub{
 		clients: map[string]*WSClient{},
+		logger:  log.With("component", "hub"),
 	}
 }
 
@@ -36,11 +40,13 @@ func (h *Hub) Add(c *WSClient) {
 	defer h.mu.Unlock()
 
 	if old, ok := h.clients[c.id]; ok {
+		h.logger.Info("ws replacing client", "clientId", c.id)
 		safeCloseBytes(old.send)
 		old.conn.Close()
 	}
 
 	h.clients[c.id] = c
+	h.logger.Info("ws client added", "clientId", c.id, "clients", len(h.clients))
 }
 
 func (h *Hub) Remove(id string) {
@@ -51,6 +57,7 @@ func (h *Hub) Remove(id string) {
 		delete(h.clients, id)
 		safeCloseBytes(c.send)
 		c.conn.Close()
+		h.logger.Info("ws client removed", "clientId", id, "clients", len(h.clients))
 	}
 }
 
@@ -64,6 +71,7 @@ func (h *Hub) Shutdown() {
 		safeCloseBytes(c.send)
 		c.conn.Close()
 	}
+	h.logger.Info("ws hub shutdown", "clients", len(clients))
 }
 
 func (h *Hub) SendTo(clientId string, event WSEvent) {
@@ -72,6 +80,7 @@ func (h *Hub) SendTo(clientId string, event WSEvent) {
 	h.mu.RUnlock()
 
 	if c == nil {
+		h.logger.Debug("ws send skipped; client missing", "clientId", clientId, "type", event.Type)
 		return
 	}
 
@@ -79,6 +88,7 @@ func (h *Hub) SendTo(clientId string, event WSEvent) {
 	select {
 	case c.send <- b:
 	default:
+		h.logger.Warn("ws send queue full; dropping client", "clientId", clientId, "type", event.Type)
 		h.Remove(clientId)
 	}
 }

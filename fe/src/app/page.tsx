@@ -94,7 +94,7 @@ export default function Home() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastTimersRef = useRef<Map<string, number>>(new Map());
 
-  const baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081";
+  const baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
   const urls = useMemo(() => {
     return {
       generate: new URL("generateimage", baseUrl),

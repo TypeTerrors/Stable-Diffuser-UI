@@ -9,10 +9,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/log"
 )
 
 type Hf struct {
@@ -22,6 +25,7 @@ type Hf struct {
 
 	downloadUrl  string
 	modelInfoUrl string
+	logger       *log.Logger
 }
 
 func NewHfClient(ctx context.Context, config config.ApiDlClientConfig) *Hf {
@@ -31,6 +35,7 @@ func NewHfClient(ctx context.Context, config config.ApiDlClientConfig) *Hf {
 		modelInfoUrl: config.ModeInfoUrl,
 		downloadUrl:  config.DownloadUrl,
 		ctx:          ctx,
+		logger:       log.With("component"),
 		httpClient: &http.Client{
 			Timeout: time.Hour,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -38,8 +43,12 @@ func NewHfClient(ctx context.Context, config config.ApiDlClientConfig) *Hf {
 					return errors.New("too many redirects")
 				}
 				if len(via) > 0 {
-					if auth := via[0].Header.Get("Authorization"); auth != "" {
-						req.Header.Set("Authorization", auth)
+					// Only forward Authorization on same-host redirects.
+					// Download endpoints often redirect to a presigned S3 URL; forwarding a Bearer token to S3 can break the request.
+					if strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+						if auth := via[0].Header.Get("Authorization"); auth != "" {
+							req.Header.Set("Authorization", auth)
+						}
 					}
 				}
 				return nil
@@ -73,9 +82,11 @@ func (hf *Hf) GetModelInfo(id string) (ModelIdResponse, error) {
 	headers["Authorization"] = "Bearer " + hf.api_key
 	headers["Content-Type"] = "application/json"
 
-	url := urlWithID(hf.modelInfoUrl, id)
-	resp, err := transport.Get[ModelIdResponse](*hf.httpClient, hf.ctx, url, headers)
+	endpoint := urlWithID(hf.modelInfoUrl, id)
+	hf.logger.Debug("get model info", "id", id, "url", endpoint)
+	resp, err := transport.Get[ModelIdResponse](*hf.httpClient, hf.ctx, endpoint, headers)
 	if err != nil {
+		hf.logger.Error("get model info failed", "id", id, "err", err)
 		return ModelIdResponse{}, err
 	}
 
@@ -89,9 +100,11 @@ func (hf *Hf) GetModelVersionInfo(id string) (ModelVersionIdResponse, error) {
 	headers["Authorization"] = "Bearer " + hf.api_key
 	headers["Content-Type"] = "application/json"
 
-	url := urlWithID(hf.modelInfoUrl, id)
-	resp, err := transport.Get[ModelVersionIdResponse](*hf.httpClient, hf.ctx, url, headers)
+	endpoint := urlWithID(hf.modelInfoUrl, id)
+	hf.logger.Debug("get model version info", "id", id, "url", endpoint)
+	resp, err := transport.Get[ModelVersionIdResponse](*hf.httpClient, hf.ctx, endpoint, headers)
 	if err != nil {
+		hf.logger.Error("get model version info failed", "id", id, "err", err)
 		return ModelVersionIdResponse{}, err
 	}
 
@@ -112,8 +125,17 @@ func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
 		downloadURL = urlWithID(hf.downloadUrl, downloadURL)
 	}
 
+	downloadHost := ""
+	downloadPath := ""
+	if u, err := url.Parse(downloadURL); err == nil && u != nil {
+		downloadHost = u.Host
+		downloadPath = u.Path
+	}
+	hf.logger.Info("download start", "host", downloadHost, "path", downloadPath, "dest", filePath)
+
 	resp, err := transport.Download(*hf.httpClient, hf.ctx, downloadURL, headers)
 	if err != nil {
+		hf.logger.Error("download request failed", "host", downloadHost, "path", downloadPath, "dest", filePath, "err", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -125,13 +147,19 @@ func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
 		}
 	}
 
-	filename = sanitizeDownloadedFilename(filename)
+	filename = SanitizeDownloadedFilename(filename)
 
 	tmpPath := filepath.Join(filePath, filename+".part")
 	finalPath := filepath.Join(filePath, filename)
 
+	if fi, err := os.Stat(finalPath); err == nil && fi != nil && !fi.IsDir() && fi.Size() > 0 {
+		hf.logger.Info("download skipped; file exists", "file", finalPath)
+		return nil
+	}
+
 	out, err := os.Create(tmpPath)
 	if err != nil {
+		hf.logger.Error("download create temp file failed", "tmp", tmpPath, "err", err)
 		return err
 	}
 
@@ -140,21 +168,25 @@ func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
 
 	if copyErr != nil {
 		_ = os.Remove(tmpPath)
+		hf.logger.Error("download write failed", "tmp", tmpPath, "err", copyErr)
 		return copyErr
 	}
 	if closeErr != nil {
 		_ = os.Remove(tmpPath)
+		hf.logger.Error("download close failed", "tmp", tmpPath, "err", closeErr)
 		return closeErr
 	}
 
 	if err := os.Rename(tmpPath, finalPath); err != nil {
 		_ = os.Remove(tmpPath)
+		hf.logger.Error("download rename failed", "tmp", tmpPath, "final", finalPath, "err", err)
 		return err
 	}
+	hf.logger.Info("download complete", "file", finalPath)
 	return nil
 }
 
-func sanitizeDownloadedFilename(filename string) string {
+func SanitizeDownloadedFilename(filename string) string {
 	filename = strings.TrimSpace(filename)
 	if filename == "" {
 		return "model.safetensors"
