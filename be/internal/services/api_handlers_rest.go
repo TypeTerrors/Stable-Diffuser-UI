@@ -3,6 +3,7 @@ package services
 import (
 	"be/proto"
 	"be/types"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 func (a *Api) Health() fiber.Handler {
@@ -76,16 +78,16 @@ func (a *Api) ListModels() fiber.Handler {
 
 		if err != nil {
 			ctx.Status(fiber.StatusInternalServerError)
-			ctx.JSON(ErrorResponse{
-				Error: err.Error(),
+			ctx.JSON(types.ErrorResponse{
+				Error:   err.Error(),
 				Message: "Failed to walk model files.",
 			})
 			return nil
 		}
 
 		ctx.Status(fiber.StatusOK)
-		ctx.JSON(listModelsResponse{
-			ModelPaths: files,
+		ctx.JSON(types.ListLorasResponse{
+			LoraPaths: files,
 		})
 		return nil
 	}
@@ -116,15 +118,15 @@ func (a *Api) ListLoras() fiber.Handler {
 
 		if err != nil {
 			ctx.Status(fiber.StatusInternalServerError)
-			ctx.JSON(ErrorResponse{
-				Error: err.Error(),
+			ctx.JSON(types.ErrorResponse{
+				Error:   err.Error(),
 				Message: "Failed to walk model files.",
 			})
 			return nil
 		}
 
 		ctx.Status(fiber.StatusOK)
-		ctx.JSON(ListLorasResponse{
+		ctx.JSON(types.ListLorasResponse{
 			LoraPaths: files,
 		})
 		return nil
@@ -276,5 +278,55 @@ func (a *Api) ClearLoras() fiber.Handler {
 
 		ctx.Status(fiber.StatusOK)
 		return ctx.JSON(loras)
+	}
+}
+
+func (a *Api) DownloadModel() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		if a.dl == nil {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(types.ErrorResponse{
+				Error:   "downloader not configured",
+				Message: "service unavailable",
+			})
+		}
+
+		var req DownloadRequest
+		if err := ctx.BodyParser(&req); err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid body",
+			})
+		}
+
+		if req.ClientID == "" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   "clientId is required",
+				Message: "missing clientId",
+			})
+		}
+		if req.ModelVersionID <= 0 {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   "modelVersionId must be > 0",
+				Message: "invalid modelVersionId",
+			})
+		}
+
+		jobID := uuid.NewString()
+		if err := a.dl.Enqueue(DownloadJob{
+			JobID:          jobID,
+			ClientID:       req.ClientID,
+			ModelVersionID: req.ModelVersionID,
+		}); err != nil {
+			code := fiber.StatusServiceUnavailable
+			if errors.Is(err, ErrDownloadQueueFull) {
+				code = fiber.StatusTooManyRequests
+			}
+			return ctx.Status(code).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "failed to enqueue download",
+			})
+		}
+
+		return ctx.Status(fiber.StatusAccepted).JSON(types.DownloadResponse{JobID: jobID})
 	}
 }

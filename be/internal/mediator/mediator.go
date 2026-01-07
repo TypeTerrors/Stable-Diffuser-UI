@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type App struct {
@@ -31,12 +32,11 @@ func NewApp(config config.Config) (*App, error) {
 		return nil, fmt.Errorf("error creating newapp: %w", err)
 	}
 
-	api := services.NewApi(rpc, config.Api)
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	hub := services.NewHub()
 	dl := services.NewDownloaderService(hub, config.Api.Dl, ctx)
+	api := services.NewApi(rpc, config.Api, hub, dl)
 
 	return &App{
 		api:    api,
@@ -48,19 +48,39 @@ func NewApp(config config.Config) (*App, error) {
 	}, nil
 }
 
-func (a *App) Start() {
+func (a *App) Run() error {
+	a.dl.Run()
 
-	a.dl.Run(a.ctx)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- a.api.Start()
+	}()
 
-	go a.api.Start()
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case <-sigCh:
+		a.Shutdown()
+		return nil
+	case err := <-errCh:
+		a.Shutdown()
+		return err
+	case <-a.ctx.Done():
+		a.Shutdown()
+		return a.ctx.Err()
+	}
 }
 
 func (a *App) Shutdown() {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	<-ch
 
 	a.cancel()
 	a.dl.Shutdown()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	_ = a.api.Shutdown(shutdownCtx)
+	cancel()
+
+	a.hub.Shutdown()
 	a.rpc.Close()
 }

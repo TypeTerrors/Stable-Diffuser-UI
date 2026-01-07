@@ -1,16 +1,18 @@
 package huggingface
 
 import (
+	"be/config"
 	"be/internal/clients/transport"
 	"be/utils"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
-	"be/config"
 )
 
 type Hf struct {
@@ -46,6 +48,24 @@ func NewHfClient(ctx context.Context, config config.ApiDlClientConfig) *Hf {
 	}
 }
 
+func urlWithID(template, id string) string {
+	template = strings.TrimSpace(template)
+	if template == "" {
+		return ""
+	}
+	if strings.Contains(template, "{id}") {
+		return strings.ReplaceAll(template, "{id}", id)
+	}
+	if strings.Contains(template, "%s") {
+		// Allows config like: "https://.../%s"
+		return fmt.Sprintf(template, id)
+	}
+	if strings.HasSuffix(template, "/") {
+		return template + id
+	}
+	return template + "/" + id
+}
+
 func (hf *Hf) GetModelInfo(id string) (ModelIdResponse, error) {
 
 	headers := make(map[string]string)
@@ -53,7 +73,8 @@ func (hf *Hf) GetModelInfo(id string) (ModelIdResponse, error) {
 	headers["Authorization"] = "Bearer " + hf.api_key
 	headers["Content-Type"] = "application/json"
 
-	resp, err := transport.Get[ModelIdResponse](*hf.httpClient, hf.modelInfoUrl, headers)
+	url := urlWithID(hf.modelInfoUrl, id)
+	resp, err := transport.Get[ModelIdResponse](*hf.httpClient, hf.ctx, url, headers)
 	if err != nil {
 		return ModelIdResponse{}, err
 	}
@@ -61,15 +82,41 @@ func (hf *Hf) GetModelInfo(id string) (ModelIdResponse, error) {
 	return resp, nil
 }
 
-func (hf *Hf) DownloadModelIntoFolder(downloadUrl, filePath string) error {
+func (hf *Hf) GetModelVersionInfo(id string) (ModelVersionIdResponse, error) {
 
 	headers := make(map[string]string)
 
 	headers["Authorization"] = "Bearer " + hf.api_key
-	resp, err := transport.Download(*hf.httpClient, hf.ctx, hf.downloadUrl, headers)
+	headers["Content-Type"] = "application/json"
+
+	url := urlWithID(hf.modelInfoUrl, id)
+	resp, err := transport.Get[ModelVersionIdResponse](*hf.httpClient, hf.ctx, url, headers)
+	if err != nil {
+		return ModelVersionIdResponse{}, err
+	}
+
+	return resp, nil
+}
+
+func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
+
+	headers := make(map[string]string)
+
+	headers["Authorization"] = "Bearer " + hf.api_key
+
+	downloadURL := strings.TrimSpace(downloadURLOrID)
+	if downloadURL == "" {
+		return errors.New("missing download url")
+	}
+	if !strings.HasPrefix(downloadURL, "http://") && !strings.HasPrefix(downloadURL, "https://") && hf.downloadUrl != "" {
+		downloadURL = urlWithID(hf.downloadUrl, downloadURL)
+	}
+
+	resp, err := transport.Download(*hf.httpClient, hf.ctx, downloadURL, headers)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	filename := "model.safetensors"
 	if cd := resp.Header.Get("Content-Disposition"); cd != "" {

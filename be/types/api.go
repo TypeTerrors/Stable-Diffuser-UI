@@ -18,13 +18,13 @@ type CurrentModelResponse struct {
 }
 
 type ClearModelResponse struct {
-	ModelPath string   `json:"modelPath"`
+	ModelPath string    `json:"modelPath"`
 	Loras     []SetLora `json:"loras"`
 }
 
 type SetLora struct {
 	Weight float32 `json:"weight"`
-	Path   string `json:"path"`
+	Path   string  `json:"path"`
 }
 
 type ImagePostResponse struct {
@@ -41,4 +41,16 @@ type ErrorResponse struct {
 type HealthResponse struct {
 	Status    int   `json:"status"`
 	TimeStamp int64 `json:"timestamp"`
+}
+
+type listModelsResponse struct {
+	ModelPaths []string `json:"modelPaths"`
+}
+
+type ListLorasResponse struct {
+	LoraPaths []string `json:"lorapaths"`
+}
+
+type DownloadResponse struct {
+	JobID string `json:"jobId"`
 }

@@ -37,7 +37,7 @@ func (c *WSClient) writeLoop() {
 	}
 }
 
-func (c *WSClient) readPump(onDone func()) {
+func (c *WSClient) readLoop(onDone func()) {
 	defer onDone()
 	c.conn.SetReadLimit(1 << 20)
 	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))

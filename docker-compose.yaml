@@ -49,8 +49,8 @@ services:
       RPC_PEER: ${RPC_PEER}
       RPC_PORT: ${RPC_PORT}
     volumes:
-      - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}:ro
-      - ./py/loras:${LORA_MOUNT_PATH:-/workspace/loras}:ro
+      - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}
+      - ./py/loras:${LORA_MOUNT_PATH:-/workspace/loras}
     ports:
       - "${API_PORT}:${API_PORT}"
 

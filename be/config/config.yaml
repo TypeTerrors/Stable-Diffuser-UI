@@ -6,7 +6,7 @@ api:
   log_level: info # validate:required
   allowed_origins: "${API_ALLOWED_ORIGINS:-http://localhost:3000}"
   dl:
-    baseDir: ${BASE_DIR:-/py/models/} # validate:required
+    baseDir: ${MODEL_MOUNT_PATH:-/workspace/models} # validate:required
     queueSize: 1 # validate:required,min=1,max=10
     maxConcurrent: 1 # validate:required,min=1,max=10
     client:

@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-func Get[r any](h http.Client, url string, headers map[string]string) (r, error) {
+func Get[r any](h http.Client, ctx context.Context, url string, headers map[string]string) (r, error) {
 
 	var response r
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return response, err
 	}

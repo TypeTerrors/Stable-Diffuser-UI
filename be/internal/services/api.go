@@ -3,6 +3,7 @@ package services
 import (
 	"be/config"
 	"be/internal/dependencies"
+	"context"
 	"fmt"
 
 	"github.com/charmbracelet/log"
@@ -15,9 +16,11 @@ type Api struct {
 	rpc            *dependencies.Rpc
 	port           string
 	allowedOrigins string
+	hub            *Hub
+	dl             *DownloaderService
 }
 
-func NewApi(rpc *dependencies.Rpc, config config.ApiConfig) *Api {
+func NewApi(rpc *dependencies.Rpc, config config.ApiConfig, hub *Hub, dl *DownloaderService) *Api {
 	if config.AllowedOrigins == "" {
 		config.AllowedOrigins = "*"
 	}
@@ -27,10 +30,12 @@ func NewApi(rpc *dependencies.Rpc, config config.ApiConfig) *Api {
 		rpc:            rpc,
 		port:           config.Port,
 		allowedOrigins: config.AllowedOrigins,
+		hub:            hub,
+		dl:             dl,
 	}
 }
 
-func (a *Api) Start() {
+func (a *Api) Start() error {
 
 	allowCredentials := a.allowedOrigins != "*"
 
@@ -43,7 +48,24 @@ func (a *Api) Start() {
 
 	a.addRoutes()
 
-	log.Fatal(a.server.Listen(fmt.Sprint(":", a.port)))
+	if err := a.server.Listen(fmt.Sprint(":", a.port)); err != nil {
+		log.Error("api stopped", "err", err)
+		return err
+	}
+	return nil
+}
+
+func (a *Api) Shutdown(ctx context.Context) error {
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- a.server.Shutdown()
+	}()
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (a *Api) addRoutes() {
@@ -57,6 +79,7 @@ func (a *Api) addRoutes() {
 	a.server.Add("GET", "/currentloras", a.CurrentLoras())
 	a.server.Add("POST", "/clearmodel", a.ClearModel())
 	a.server.Add("POST", "/clearloras", a.ClearLoras())
+	a.server.Add("POST", "/download", a.DownloadModel())
 
 	// websocket connection
 	a.server.Use("/ws", a.WsUpgrade())

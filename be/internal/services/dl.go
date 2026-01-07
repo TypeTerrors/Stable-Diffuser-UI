@@ -5,9 +5,10 @@ import (
 	"be/internal/clients/huggingface"
 	"context"
 	"errors"
-	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
@@ -24,10 +25,14 @@ type DownloadJob struct {
 	ModelVersionID int64
 }
 
+var (
+	ErrDownloaderShuttingDown = errors.New("service shutting down")
+	ErrDownloadQueueFull      = errors.New("queue full")
+)
+
 type DownloaderService struct {
 	hub     *Hub
 	baseDir string
-	token   string
 
 	queue chan DownloadJob
 	group errgroup.Group
@@ -50,13 +55,22 @@ func NewDownloaderService(hub *Hub, config config.ApiDlConfig, ctx context.Conte
 	return s
 }
 
-func (d *DownloaderService) Run(ctx context.Context) {
+func (d *DownloaderService) Run() {
 	go func() {
-		for job := range d.queue {
-			d.group.Go(func() error {
-				d.runJob(job)
-				return nil
-			})
+		for {
+			select {
+			case <-d.ctx.Done():
+				return
+			case job, ok := <-d.queue:
+				if !ok {
+					return
+				}
+				jobCopy := job
+				d.group.Go(func() error {
+					d.runJob(jobCopy)
+					return nil
+				})
+			}
 		}
 	}()
 }
@@ -65,13 +79,13 @@ func (d *DownloaderService) Enqueue(job DownloadJob) error {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	if d.closing {
-		return errors.New("service shutting down")
+		return ErrDownloaderShuttingDown
 	}
 	select {
 	case d.queue <- job:
 		return nil
 	default:
-		return errors.New("queue full")
+		return ErrDownloadQueueFull
 	}
 }
 
@@ -87,8 +101,12 @@ func (s *DownloaderService) Shutdown() {
 
 // WS only emits completion/failure.
 func (d *DownloaderService) runJob(job DownloadJob) {
+	if d.ctx.Err() != nil {
+		return
+	}
 
-	modelInfo, err := d.client.GetModelInfo(string(job.ModelVersionID))
+	modelVersionID := strconv.FormatInt(job.ModelVersionID, 10)
+	modelInfo, err := d.client.GetModelVersionInfo(modelVersionID)
 	if err != nil {
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
@@ -99,14 +117,9 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		return
 	}
 
-	var downloadLink, basemodel, modelId string
-	for _, info := range modelInfo.ModelVersions {
-		if info.Id == job.ModelVersionID {
-			downloadLink = info.DownloadUrl
-			basemodel = info.BaseModel
-			modelId = strconv.FormatInt(info.Id, 10)
-		}
-	}
+	downloadLink := modelInfo.DownloadUrl
+	baseModel := modelInfo.BaseModel
+	modelType := modelInfo.Model.Type
 
 	if downloadLink == "" {
 		d.hub.SendTo(job.ClientID, WSEvent{
@@ -117,7 +130,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		})
 		return
 	}
-	if basemodel == "" {
+	if baseModel == "" {
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
@@ -128,7 +141,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 	}
 
 	var folderPath string
-	if folderPath = d.CreateFolderpath(basemodel, modelInfo.Type); folderPath == "" {
+	if folderPath = d.createFolderpath(baseModel, modelType); folderPath == "" {
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
@@ -148,7 +161,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		return
 	}
 
-	if err := d.client.DownloadModelIntoFolder(modelId, folderPath); err != nil {
+	if err := d.client.DownloadModelIntoFolder(downloadLink, folderPath); err != nil {
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",
 			JobID:          job.JobID,
@@ -167,17 +180,40 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 	})
 }
 
-func (d *DownloaderService) CreateFolderpath(baseModel, modelType string) string {
+func (d *DownloaderService) createFolderpath(baseModel, modelType string) string {
 
-	if modelType == "Checkpoint" {
-		return fmt.Sprint("/py/models/", baseModel)
+	baseDir := strings.TrimSpace(d.baseDir)
+	if baseDir == "" {
+		return ""
 	}
 
-	if modelType == "Loras" {
-		return fmt.Sprint("/py", fmt.Sprint("/", modelType), fmt.Sprint("/", baseModel, "/"))
+	baseDir = filepath.Clean(baseDir)
+
+	modelTypeLower := strings.ToLower(strings.TrimSpace(modelType))
+	typeDir := ""
+	switch {
+	case strings.Contains(modelTypeLower, "checkpoint"):
+		typeDir = "models"
+	case strings.Contains(modelTypeLower, "lora"):
+		typeDir = "loras"
+	default:
+		return ""
 	}
-	return ""
+
+	// If baseDir points at one type (e.g. /workspace/models) and we're downloading the other,
+	// put it in the sibling directory (/workspace/loras).
+	baseName := filepath.Base(baseDir)
+	if (typeDir == "loras" && strings.EqualFold(baseName, "models")) || (typeDir == "models" && strings.EqualFold(baseName, "loras")) {
+		baseDir = filepath.Dir(baseDir)
+	}
+
+	if !strings.EqualFold(filepath.Base(baseDir), typeDir) {
+		baseDir = filepath.Join(baseDir, typeDir)
+	}
+
+	return filepath.Join(baseDir, baseModel)
 }
+
 func (d *DownloaderService) CreateFolder(folderPath string) error {
 	return os.MkdirAll(folderPath, 0o755)
 }
