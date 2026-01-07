@@ -1,6 +1,7 @@
 package services
 
 import (
+	"be/config"
 	"be/internal/dependencies"
 	"fmt"
 
@@ -16,15 +17,16 @@ type Api struct {
 	allowedOrigins string
 }
 
-func NewApi(port string, rpc *dependencies.Rpc, allowedOrigins string) *Api {
-	if allowedOrigins == "" {
-		allowedOrigins = "*"
+func NewApi(rpc *dependencies.Rpc, config config.ApiConfig) *Api {
+	if config.AllowedOrigins == "" {
+		config.AllowedOrigins = "*"
 	}
+
 	return &Api{
 		server:         fiber.New(),
 		rpc:            rpc,
-		port:           port,
-		allowedOrigins: allowedOrigins,
+		port:           config.Port,
+		allowedOrigins: config.AllowedOrigins,
 	}
 }
 
@@ -55,4 +57,8 @@ func (a *Api) addRoutes() {
 	a.server.Add("GET", "/currentloras", a.CurrentLoras())
 	a.server.Add("POST", "/clearmodel", a.ClearModel())
 	a.server.Add("POST", "/clearloras", a.ClearLoras())
+
+	// websocket connection
+	a.server.Use("/ws", a.WsUpgrade())
+	a.server.Get("/ws/:id", a.Notifications())
 }
