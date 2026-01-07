@@ -77,7 +77,7 @@ func (a *Api) ListModels() fiber.Handler {
 		if err != nil {
 			ctx.Status(fiber.StatusInternalServerError)
 			ctx.JSON(ErrorResponse{
-				Error: err.Error(),
+				Error:   err.Error(),
 				Message: "Failed to walk model files.",
 			})
 			return nil
@@ -117,7 +117,7 @@ func (a *Api) ListLoras() fiber.Handler {
 		if err != nil {
 			ctx.Status(fiber.StatusInternalServerError)
 			ctx.JSON(ErrorResponse{
-				Error: err.Error(),
+				Error:   err.Error(),
 				Message: "Failed to walk model files.",
 			})
 			return nil
