@@ -179,23 +179,12 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		return
 	}
 
-	downloadLink := modelInfo.DownloadUrl
 	baseModel := dashifySpaces(modelInfo.BaseModel)
 	modelType := ""
 	if modelInfo.Model.Type != nil {
 		modelType = dashifySpaces(*modelInfo.Model.Type)
 	}
 
-	if downloadLink == "" {
-		d.logger.Error("download failed missing download link", "jobId", job.JobID, "modelVersionId", job.ModelVersionID)
-		d.hub.SendTo(job.ClientID, WSEvent{
-			Type:           "download.failed",
-			JobID:          job.JobID,
-			ModelVersionID: job.ModelVersionID,
-			Message:        "couldn't determine download link",
-		})
-		return
-	}
 	if baseModel == "" {
 		d.logger.Error("download failed missing basemodel", "jobId", job.JobID, "modelVersionId", job.ModelVersionID)
 		d.hub.SendTo(job.ClientID, WSEvent{
@@ -219,7 +208,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		return
 	}
 
-	candidate := huggingface.SanitizeDownloadedFilename(preferredFilename(modelInfo))
+	candidate := huggingface.SanitizeDownloadedFilename(preferredFilename(modelInfo), modelVersionID)
 	finalPath := filepath.Join(folderPath, candidate)
 	if fileExistsNonEmpty(finalPath) {
 		d.logger.Info("download skipped; file exists", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "file", finalPath)
@@ -244,7 +233,7 @@ func (d *DownloaderService) runJob(job DownloadJob) {
 		return
 	}
 
-	if err := d.client.DownloadModelIntoFolder(downloadLink, folderPath); err != nil {
+	if err := d.client.DownloadModelIntoFolder(modelVersionID, folderPath); err != nil {
 		d.logger.Error("download failed downloading model", "jobId", job.JobID, "modelVersionId", job.ModelVersionID, "folder", folderPath, "err", err)
 		d.hub.SendTo(job.ClientID, WSEvent{
 			Type:           "download.failed",

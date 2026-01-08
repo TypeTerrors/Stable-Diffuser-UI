@@ -32,7 +32,7 @@ import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsUpDown, Loader2,
 
 type ModelsResponse = { modelPaths: string[] };
 type LorasResponse = { lorapaths: string[] };
-type SetLora = { path: string; weight: number };
+type SetLora = { path: string; weight: number; triggerWords?: string | null };
 type CurrentModelResponse = { modelPath: string };
 type DownloadEvent = { type: string; jobId: string; modelVersionId: number; message?: string; path?: string };
 
@@ -93,6 +93,7 @@ export default function Home() {
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastTimersRef = useRef<Map<string, number>>(new Map());
+  const triggerCacheRef = useRef<Map<string, string>>(new Map());
 
   const baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
   const urls = useMemo(() => {
@@ -154,7 +155,11 @@ export default function Home() {
       setAvailableModelPaths(models.modelPaths ?? []);
       setAvailableLoraPaths(loras.lorapaths ?? []);
       setCurrentModelPath(currentModel.modelPath ?? "");
-      setCurrentLoras(currentLorasResp ?? []);
+      const mergedCurrent = (currentLorasResp ?? []).map((l) => ({
+        ...l,
+        triggerWords: l.triggerWords ?? triggerCacheRef.current.get(l.path) ?? null,
+      }));
+      setCurrentLoras(mergedCurrent);
       if (!selectedModelPath && currentModel.modelPath) setSelectedModelPath(currentModel.modelPath);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
@@ -342,7 +347,10 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      setCurrentLoras(applied ?? []);
+      for (const l of applied ?? []) {
+        if (l.triggerWords) triggerCacheRef.current.set(l.path, l.triggerWords);
+      }
+      setCurrentLoras((applied ?? []).map((l) => ({ ...l, triggerWords: l.triggerWords ?? triggerCacheRef.current.get(l.path) ?? null })));
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
@@ -377,6 +385,39 @@ export default function Home() {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
+    }
+  };
+
+  const parseTriggerWords = (value: string | null | undefined): string[] => {
+    const raw = (value ?? "").trim();
+    if (!raw) return [];
+    const parts = raw.includes(",") ? raw.split(",") : raw.split("-");
+    return parts
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .filter((p, idx, arr) => arr.indexOf(p) === idx);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast({ variant: "success", title: "Copied to clipboard", description: text }, { timeoutMs: 2000 });
+    } catch {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!ok) throw new Error("copy failed");
+        pushToast({ variant: "success", title: "Copied to clipboard", description: text }, { timeoutMs: 2000 });
+      } catch (e) {
+        pushToast({ variant: "error", title: "Copy failed", description: e instanceof Error ? e.message : String(e) });
+      }
     }
   };
 
@@ -678,6 +719,45 @@ export default function Home() {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
+
+                  {currentLoras.length > 0 ? (
+                    <div className="space-y-3">
+                      <Separator />
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">Trigger words</div>
+                        <p className="text-xs text-muted-foreground">Click a badge to copy it, then paste into your prompt.</p>
+                      </div>
+                      <div className="space-y-3">
+                        {currentLoras.map((l) => {
+                          const name = l.path.replaceAll("\\", "/").split("/").slice(-1)[0] ?? l.path;
+                          const words = parseTriggerWords(l.triggerWords);
+                          return (
+                            <div key={l.path} className="space-y-2 rounded-lg border bg-muted/40 p-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary" title={l.path}>
+                                  {name}
+                                </Badge>
+                                <Badge variant="outline">weight {l.weight}</Badge>
+                              </div>
+                              {words.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {words.map((w) => (
+                                    <Badge asChild key={w} variant="outline">
+                                      <button type="button" className="cursor-pointer" onClick={() => copyToClipboard(w)} title="Copy">
+                                        {w}
+                                      </button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-xs text-muted-foreground">No trigger words (or failed to fetch).</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>

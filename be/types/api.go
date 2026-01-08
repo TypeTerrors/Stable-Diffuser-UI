@@ -23,8 +23,9 @@ type ClearModelResponse struct {
 }
 
 type SetLora struct {
-	Weight float32 `json:"weight"`
-	Path   string  `json:"path"`
+	Weight       float32 `json:"weight"`
+	Path         string  `json:"path"`
+	TriggerWords *string `json:"triggerWords"`
 }
 
 type ImagePostResponse struct {

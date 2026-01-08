@@ -111,18 +111,23 @@ func (hf *Hf) GetModelVersionInfo(id string) (ModelVersionIdResponse, error) {
 	return resp, nil
 }
 
-func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
+func (hf *Hf) DownloadModelIntoFolder(modelVersionID, filePath string) error {
 
 	headers := make(map[string]string)
 
 	headers["Authorization"] = "Bearer " + hf.api_key
 
-	downloadURL := strings.TrimSpace(downloadURLOrID)
-	if downloadURL == "" {
-		return errors.New("missing download url")
+	modelVersionID = strings.TrimSpace(modelVersionID)
+	if modelVersionID == "" {
+		return errors.New("missing model version id")
 	}
-	if !strings.HasPrefix(downloadURL, "http://") && !strings.HasPrefix(downloadURL, "https://") && hf.downloadUrl != "" {
-		downloadURL = urlWithID(hf.downloadUrl, downloadURL)
+	if strings.TrimSpace(hf.downloadUrl) == "" {
+		return errors.New("missing download url template")
+	}
+
+	downloadURL := urlWithID(hf.downloadUrl, modelVersionID)
+	if downloadURL == "" {
+		return errors.New("failed to build download url")
 	}
 
 	downloadHost := ""
@@ -147,7 +152,7 @@ func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
 		}
 	}
 
-	filename = SanitizeDownloadedFilename(filename)
+	filename = SanitizeDownloadedFilename(filename, modelVersionID)
 
 	tmpPath := filepath.Join(filePath, filename+".part")
 	finalPath := filepath.Join(filePath, filename)
@@ -186,10 +191,15 @@ func (hf *Hf) DownloadModelIntoFolder(downloadURLOrID, filePath string) error {
 	return nil
 }
 
-func SanitizeDownloadedFilename(filename string) string {
+func SanitizeDownloadedFilename(filename, modelVersionID string) string {
+	modelVersionID = strings.TrimSpace(modelVersionID)
+	if modelVersionID == "" {
+		modelVersionID = "0"
+	}
+
 	filename = strings.TrimSpace(filename)
 	if filename == "" {
-		return "model.safetensors"
+		filename = "model.safetensors"
 	}
 
 	// Prevent any path traversal / nested paths from the server.
@@ -210,5 +220,8 @@ func SanitizeDownloadedFilename(filename string) string {
 	}
 
 	ext = strings.ReplaceAll(ext, " ", "")
-	return stem + ext
+	if strings.HasPrefix(stem, modelVersionID+"-") {
+		return stem + ext
+	}
+	return modelVersionID + "-" + stem + ext
 }
