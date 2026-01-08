@@ -5,6 +5,14 @@ api:
   port: ${API_PORT:-8080} # validate:required,min=1,max=65535
   log_level: info # validate:required
   allowed_origins: "${API_ALLOWED_ORIGINS:-http://localhost:3000}"
+  dl:
+    baseDir: ${BASE_DIR:-/py/models/} # validate:required
+    queueSize: 1 # validate:required,min=1,max=10
+    maxConcurrent: 1 # validate:required,min=1,max=10
+    client:
+      downloadUrl: ${DOWNLOAD_URL} # validate:required
+      modeInfoUrl: ${MODEL_INFO_URL} # validate:required
+      apiKey: ${API_KEY} # validate:required
 
 rpc:
   port: ${RPC_PORT:-50051} # validate:required,min=1,max=65535

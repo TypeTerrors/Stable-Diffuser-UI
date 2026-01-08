@@ -3,9 +3,11 @@ package main
 import (
 	"be/config"
 	"be/internal/mediator"
-	"log"
+	"strings"
+	"time"
 
 	"github.com/TypeTerrors/gonfig"
+	"github.com/charmbracelet/log"
 )
 
 func main() {
@@ -19,11 +21,32 @@ func main() {
 		log.Fatal(err)
 	}
 
+	setupLogger(cfg.Api.LogLevel)
+
 	app, err := mediator.NewApp(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer app.Shutdown()
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
 
-	app.Start()
+func setupLogger(level string) {
+	log.SetReportTimestamp(true)
+	log.SetTimeFormat(time.RFC3339Nano)
+
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info", "":
+		log.SetLevel(log.InfoLevel)
+	case "warn", "warning":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
+		log.Warn("unknown log level; defaulting to info", "level", level)
+	}
 }

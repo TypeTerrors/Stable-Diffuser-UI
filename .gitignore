@@ -5,4 +5,5 @@ py/.devcontainer
 py/models
 py/loras
 *.env
+*.env.backup
 be/.bin/

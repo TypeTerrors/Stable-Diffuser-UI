@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
+import { DownloadModelById } from "@/components/download-model-by-id";
+import { ToastItem, ToastStack } from "@/components/toast-stack";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,8 +32,9 @@ import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsUpDown, Loader2,
 
 type ModelsResponse = { modelPaths: string[] };
 type LorasResponse = { lorapaths: string[] };
-type SetLora = { path: string; weight: number };
+type SetLora = { path: string; weight: number; triggerWords?: string | null };
 type CurrentModelResponse = { modelPath: string };
+type DownloadEvent = { type: string; jobId: string; modelVersionId: number; message?: string; path?: string };
 
 type CatalogItem = {
   fullPath: string;
@@ -88,7 +91,11 @@ export default function Home() {
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [loraPickerOpen, setLoraPickerOpen] = useState(false);
 
-  const baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081";
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const toastTimersRef = useRef<Map<string, number>>(new Map());
+  const triggerCacheRef = useRef<Map<string, string>>(new Map());
+
+  const baseUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
   const urls = useMemo(() => {
     return {
       generate: new URL("generateimage", baseUrl),
@@ -100,8 +107,11 @@ export default function Home() {
       currentLoras: new URL("currentloras", baseUrl),
       clearModel: new URL("clearmodel", baseUrl),
       clearLoras: new URL("clearloras", baseUrl),
+      download: new URL("download", baseUrl),
     };
   }, [baseUrl]);
+
+  const [clientId, setClientId] = useState("");
 
   const modelCatalog = useMemo(() => buildCatalog(availableModelPaths, "models"), [availableModelPaths]);
   const loraCatalog = useMemo(() => buildCatalog(availableLoraPaths, "loras"), [availableLoraPaths]);
@@ -145,7 +155,11 @@ export default function Home() {
       setAvailableModelPaths(models.modelPaths ?? []);
       setAvailableLoraPaths(loras.lorapaths ?? []);
       setCurrentModelPath(currentModel.modelPath ?? "");
-      setCurrentLoras(currentLorasResp ?? []);
+      const mergedCurrent = (currentLorasResp ?? []).map((l) => ({
+        ...l,
+        triggerWords: l.triggerWords ?? triggerCacheRef.current.get(l.path) ?? null,
+      }));
+      setCurrentLoras(mergedCurrent);
       if (!selectedModelPath && currentModel.modelPath) setSelectedModelPath(currentModel.modelPath);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
@@ -158,6 +172,87 @@ export default function Home() {
     refreshAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = "tt.clientId";
+    const existing = window.sessionStorage.getItem(key);
+    if (existing) {
+      setClientId(existing);
+      return;
+    }
+
+    const next = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    window.sessionStorage.setItem(key, next);
+    setClientId(next);
+  }, []);
+
+  const pushToast = (toast: Omit<ToastItem, "id">, opts?: { timeoutMs?: number }) => {
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    const timeoutMs = opts?.timeoutMs ?? 7000;
+
+    setToasts((prev) => [{ ...toast, id }, ...prev].slice(0, 4));
+    const timer = window.setTimeout(() => dismissToast(id), timeoutMs);
+    toastTimersRef.current.set(id, timer);
+  };
+
+  const dismissToast = (id: string) => {
+    const timer = toastTimersRef.current.get(id);
+    if (timer) window.clearTimeout(timer);
+    toastTimersRef.current.delete(id);
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  useEffect(() => {
+    const timers = toastTimersRef.current;
+    return () => {
+      for (const timer of timers.values()) window.clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!clientId) return;
+
+    const wsBase = baseUrl.startsWith("https://") ? baseUrl.replace(/^https:\/\//, "wss://") : baseUrl.replace(/^http:\/\//, "ws://");
+    const wsUrl = new URL(`ws/${clientId}`, wsBase);
+
+    let ws: WebSocket | null = new WebSocket(wsUrl.toString());
+    ws.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(String(ev.data)) as DownloadEvent;
+        if (!data?.type) return;
+
+        if (data.type === "download.completed") {
+          pushToast({
+            variant: "success",
+            title: `Download complete (id ${data.modelVersionId})`,
+            description: data.path ? `Saved to: ${data.path}` : "Saved successfully.",
+          });
+          refreshAll();
+        } else if (data.type === "download.failed") {
+          pushToast({
+            variant: "error",
+            title: `Download failed (id ${data.modelVersionId})`,
+            description: data.message || "The download job reported a failure.",
+          });
+        }
+      } catch {
+        // ignore non-JSON messages
+      }
+    };
+    ws.onclose = () => {
+      ws = null;
+    };
+    ws.onerror = () => {
+      // Browser will also fire close; keep noise low.
+    };
+
+    return () => {
+      ws?.close();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseUrl, clientId]);
 
   useEffect(() => {
     previewItemsRef.current = previewState.items;
@@ -252,7 +347,10 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      setCurrentLoras(applied ?? []);
+      for (const l of applied ?? []) {
+        if (l.triggerWords) triggerCacheRef.current.set(l.path, l.triggerWords);
+      }
+      setCurrentLoras((applied ?? []).map((l) => ({ ...l, triggerWords: l.triggerWords ?? triggerCacheRef.current.get(l.path) ?? null })));
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
@@ -290,8 +388,42 @@ export default function Home() {
     }
   };
 
+  const parseTriggerWords = (value: string | null | undefined): string[] => {
+    const raw = (value ?? "").trim();
+    if (!raw) return [];
+    const parts = raw.includes(",") ? raw.split(",") : raw.split("-");
+    return parts
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .filter((p, idx, arr) => arr.indexOf(p) === idx);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast({ variant: "success", title: "Copied to clipboard", description: text }, { timeoutMs: 2000 });
+    } catch {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!ok) throw new Error("copy failed");
+        pushToast({ variant: "success", title: "Copied to clipboard", description: text }, { timeoutMs: 2000 });
+      } catch (e) {
+        pushToast({ variant: "error", title: "Copy failed", description: e instanceof Error ? e.message : String(e) });
+      }
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-muted/50 to-background text-foreground">
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <header className="space-y-1">
@@ -587,7 +719,73 @@ export default function Home() {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
+
+                  {currentLoras.length > 0 ? (
+                    <div className="space-y-3">
+                      <Separator />
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">Trigger words</div>
+                        <p className="text-xs text-muted-foreground">Click a badge to copy it, then paste into your prompt.</p>
+                      </div>
+                      <div className="space-y-3">
+                        {currentLoras.map((l) => {
+                          const name = l.path.replaceAll("\\", "/").split("/").slice(-1)[0] ?? l.path;
+                          const words = parseTriggerWords(l.triggerWords);
+                          return (
+                            <div key={l.path} className="space-y-2 rounded-lg border bg-muted/40 p-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary" title={l.path}>
+                                  {name}
+                                </Badge>
+                                <Badge variant="outline">weight {l.weight}</Badge>
+                              </div>
+                              {words.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {words.map((w) => (
+                                    <Badge asChild key={w} variant="outline">
+                                      <button type="button" className="cursor-pointer" onClick={() => copyToClipboard(w)} title="Copy">
+                                        {w}
+                                      </button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-xs text-muted-foreground">No trigger words (or failed to fetch).</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted-foreground/10 shadow-sm">
+              <CardHeader>
+                <CardTitle>Downloader</CardTitle>
+                <CardDescription>Download a model by its Civitai ID and auto-refresh the catalog on completion.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <DownloadModelById
+                  downloadUrl={urls.download}
+                  clientId={clientId}
+                  disabled={busy !== null}
+                  onQueued={({ jobId, modelVersionId }) => {
+                    pushToast({
+                      variant: "info",
+                      title: `Download started (id ${modelVersionId})`,
+                      description: `Job: ${jobId}`,
+                    });
+                  }}
+                  onError={(message) => {
+                    pushToast({ variant: "error", title: "Failed to start download", description: message });
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Tip: keep this tab open while downloading so you receive the completion notification.
+                </p>
               </CardContent>
             </Card>
 

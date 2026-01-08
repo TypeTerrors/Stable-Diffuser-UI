@@ -3,7 +3,7 @@ services:
     build:
       context: ./py
       dockerfile: Dockerfile
-    container_name: img-generator-py
+    container_name: py
     env_file: .env
     environment:
       MODEL_PATH: ${PY_MODEL_PATH}
@@ -37,7 +37,7 @@ services:
     build:
       context: ./be
       dockerfile: Dockerfile
-    container_name: img-generator-be
+    container_name: be
     depends_on:
       py:
         condition: service_healthy
@@ -48,15 +48,17 @@ services:
       API_ALLOWED_ORIGINS: ${API_ALLOWED_ORIGINS}
       RPC_PEER: ${RPC_PEER}
       RPC_PORT: ${RPC_PORT}
+      MODEL_INFO_URL: ${MODEL_INFO_URL}
+      DOWNLOAD_URL: ${DOWNLOAD_URL}
     volumes:
-      - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}:ro
-      - ./py/loras:${LORA_MOUNT_PATH:-/workspace/loras}:ro
+      - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}
+      - ./py/loras:${LORA_MOUNT_PATH:-/workspace/loras}
     ports:
       - "${API_PORT}:${API_PORT}"
 
   fe:
     image: node:20
-    container_name: img-generator-fe
+    container_name: fe
     working_dir: /app
     volumes:
       - ./fe:/app
