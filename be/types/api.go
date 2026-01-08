@@ -44,7 +44,7 @@ type HealthResponse struct {
 	TimeStamp int64 `json:"timestamp"`
 }
 
-type listModelsResponse struct {
+type ListModelsResponse struct {
 	ModelPaths []string `json:"modelPaths"`
 }
 
