@@ -41,7 +41,7 @@ export function DownloadModelById({
 
   const submit = async () => {
     if (!parsed.ok) {
-      onError("Enter a valid Civitai model version ID (a positive integer).");
+      onError("Enter a valid model version ID (a positive integer).");
       return;
     }
 
@@ -66,7 +66,7 @@ export function DownloadModelById({
       <div className="space-y-1">
         <div className="text-sm font-medium">Download by ID</div>
         <p className="text-xs text-muted-foreground">
-          Paste a Civitai <span className="font-mono">modelVersionId</span> to download. Progress updates stream over WebSocket.
+          Paste a <span className="font-mono">modelVersionId</span> to download. Progress updates stream over WebSocket.
         </p>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">

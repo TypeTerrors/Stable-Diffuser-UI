@@ -98,9 +98,7 @@ func (a *Api) ListModels() fiber.Handler {
 
 		logger.Info("scan models completed", "root", root, "count", len(files))
 		ctx.Status(fiber.StatusOK)
-		ctx.JSON(types.ListLorasResponse{
-			LoraPaths: files,
-		})
+		ctx.JSON(types.ListModelsResponse{ModelPaths: files})
 		return nil
 	}
 }
