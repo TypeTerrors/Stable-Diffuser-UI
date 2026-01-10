@@ -16,7 +16,7 @@ import type {
   PreviewState,
   SetLora,
 } from "@/app/_home/types";
-import { basename, buildCatalog, downloadFilenameFromPayloadV1, fetchJson, parseTriggerWords } from "@/app/_home/utils";
+import { basename, buildCatalog, downloadFilenameFromPayloadV1, fetchJson, parseTriggerWords, pathTokenFromFullPath } from "@/app/_home/utils";
 
 type Urls = {
   generate: URL;
@@ -259,8 +259,8 @@ export function useHomeController() {
       const payload: DownloadFilenamePayloadV1 = {
         v: 1,
         id,
-        m: currentModelPath,
-        l: (currentLoras ?? []).map((l) => [l.path, l.weight]),
+        m: pathTokenFromFullPath(currentModelPath, "models"),
+        l: (currentLoras ?? []).map((l) => [pathTokenFromFullPath(l.path, "loras"), l.weight]),
         pp: positivePrompt,
         np: negativePrompt,
       };

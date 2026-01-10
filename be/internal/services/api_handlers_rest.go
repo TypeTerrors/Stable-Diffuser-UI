@@ -223,7 +223,7 @@ func (a *Api) SetLoras() fiber.Handler {
 			modelId := strings.Split(stem, "-")[0]
 
 			var triggers *string
-			if modelId != "" {
+			if modelId != "" && a.dl != nil && a.dl.client != nil {
 				info, err := a.dl.client.GetModelVersionInfo(modelId)
 				if err == nil && len(info.TrainedWords) > 0 {
 					joined := strings.Join(info.TrainedWords, ",")
@@ -278,7 +278,20 @@ func (a *Api) CurrentLoras() fiber.Handler {
 
 		appliedloras := make([]types.SetLora, 0, len(resp.Loras))
 		for _, applied := range resp.Loras {
-			appliedloras = append(appliedloras, types.SetLora{Path: applied.Path, Weight: applied.Weight})
+			base := filepath.Base(applied.Path)
+			stem := strings.TrimSuffix(base, filepath.Ext(applied.Path))
+			modelId := strings.Split(stem, "-")[0]
+
+			var triggers *string
+			if modelId != "" && a.dl != nil && a.dl.client != nil {
+				info, err := a.dl.client.GetModelVersionInfo(modelId)
+				if err == nil && len(info.TrainedWords) > 0 {
+					joined := strings.Join(info.TrainedWords, ",")
+					triggers = &joined
+				}
+			}
+
+			appliedloras = append(appliedloras, types.SetLora{Path: applied.Path, Weight: applied.Weight, TriggerWords: triggers})
 		}
 
 		logger.Debug("get current loras", "count", len(appliedloras))
