@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import { DownloadModelById } from "@/components/download-model-by-id";
 import { ToastItem, ToastStack } from "@/components/toast-stack";
+import { downloadFilenameFromPayloadV1, pathTokenFromFullPath } from "@/app/_home/utils";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,25 @@ import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsUpDown, Loader2,
 
 type ModelsResponse = { modelPaths: string[] };
 type LorasResponse = { lorapaths: string[] };
-type SetLora = { path: string; weight: number };
+type SetLoraRequest = { path: string; weight: number };
+type AppliedLora = { path: string; weight: number; triggerWords?: string | null };
 type CurrentModelResponse = { modelPath: string };
 type DownloadEvent = { type: string; jobId: string; modelVersionId: number; message?: string; path?: string };
+
+type DownloadFilenamePayloadV1 = {
+  v: 1;
+  id: string;
+  m: string;
+  l: Array<[path: string, weight: number]>;
+  pp: string;
+  np: string;
+};
+
+type PreviewItem = {
+  src: string;
+  filename: string;
+  payload: DownloadFilenamePayloadV1;
+};
 
 type CatalogItem = {
   fullPath: string;
@@ -71,9 +88,12 @@ async function fetchJson<T>(url: URL, init?: RequestInit): Promise<T> {
 export default function Home() {
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [previewState, setPreviewState] = useState<{ items: string[]; index: number }>({ items: [], index: -1 });
-  const previewItemsRef = useRef<string[]>([]);
-  const previewSrc = previewState.index >= 0 ? previewState.items[previewState.index] ?? "/file.svg" : "/file.svg";
+  const [previewState, setPreviewState] = useState<{ items: PreviewItem[]; index: number }>({ items: [], index: -1 });
+  const previewItemsRef = useRef<PreviewItem[]>([]);
+  const previewItem = previewState.index >= 0 ? previewState.items[previewState.index] : null;
+  const previewSrc = previewItem?.src ?? "/file.svg";
+  const downloadFilename = previewItem?.filename ?? "generated.png";
+  const downloadPayload = previewItem?.payload ?? null;
 
   const [availableModelPaths, setAvailableModelPaths] = useState<string[]>([]);
   const [availableLoraPaths, setAvailableLoraPaths] = useState<string[]>([]);
@@ -82,7 +102,7 @@ export default function Home() {
   const [selectedLoras, setSelectedLoras] = useState<Record<string, number>>({});
 
   const [currentModelPath, setCurrentModelPath] = useState<string>("");
-  const [currentLoras, setCurrentLoras] = useState<SetLora[]>([]);
+  const [currentLoras, setCurrentLoras] = useState<AppliedLora[]>([]);
 
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState<null | "refresh" | "setModel" | "setLoras" | "clearModel" | "clearLoras" | "generate">(
@@ -149,7 +169,7 @@ export default function Home() {
         fetchJson<ModelsResponse>(urls.models),
         fetchJson<LorasResponse>(urls.loras),
         fetchJson<CurrentModelResponse>(urls.currentModel),
-        fetchJson<SetLora[]>(urls.currentLoras),
+        fetchJson<AppliedLora[]>(urls.currentLoras),
       ]);
       setAvailableModelPaths(models.modelPaths ?? []);
       setAvailableLoraPaths(loras.lorapaths ?? []);
@@ -196,6 +216,47 @@ export default function Home() {
     if (timer) window.clearTimeout(timer);
     toastTimersRef.current.delete(id);
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const parseTriggerWords = (triggerWords?: string | null): string[] => {
+    if (!triggerWords) return [];
+    return triggerWords
+      .split(",")
+      .map((w) => w.trim())
+      .filter(Boolean);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    const value = text.trim();
+    if (!value) return;
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else if (typeof document !== "undefined") {
+        const el = document.createElement("textarea");
+        el.value = value;
+        el.setAttribute("readonly", "true");
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        el.style.pointerEvents = "none";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        if (!ok) throw new Error("copy failed");
+      } else {
+        throw new Error("clipboard unavailable");
+      }
+
+      pushToast({ variant: "success", title: "Copied trigger word", description: value }, { timeoutMs: 2000 });
+    } catch (e) {
+      pushToast({
+        variant: "error",
+        title: "Failed to copy",
+        description: e instanceof Error ? e.message : "Clipboard write failed.",
+      });
+    }
   };
 
   useEffect(() => {
@@ -255,8 +316,8 @@ export default function Home() {
 
   useEffect(() => {
     return () => {
-      for (const src of previewItemsRef.current) {
-        if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+      for (const item of previewItemsRef.current) {
+        if (item?.src?.startsWith("blob:")) URL.revokeObjectURL(item.src);
       }
     };
   }, []);
@@ -283,14 +344,24 @@ export default function Home() {
 
       const blob = await responseImage.blob();
       const objectUrl = URL.createObjectURL(blob);
+      const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+      const payload: DownloadFilenamePayloadV1 = {
+        v: 1,
+        id,
+        m: pathTokenFromFullPath(currentModelPath ?? "", "models"),
+        l: (currentLoras ?? []).map((l) => [pathTokenFromFullPath(l.path, "loras"), l.weight]),
+        pp: positivePrompt,
+        np: negativePrompt,
+      };
+      const filename = downloadFilenameFromPayloadV1(payload, "png");
       setPreviewState((prev) => {
         const maxHistory = 50;
-        let items = [...prev.items, objectUrl];
+        let items = [...prev.items, { src: objectUrl, payload, filename }];
         if (items.length > maxHistory) {
           const overflow = items.length - maxHistory;
           const removed = items.slice(0, overflow);
-          for (const src of removed) {
-            if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+          for (const item of removed) {
+            if (item?.src?.startsWith("blob:")) URL.revokeObjectURL(item.src);
           }
           items = items.slice(overflow);
         }
@@ -305,8 +376,8 @@ export default function Home() {
 
   const clearPreviewHistory = () => {
     setPreviewState((prev) => {
-      for (const src of prev.items) {
-        if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+      for (const item of prev.items) {
+        if (item?.src?.startsWith("blob:")) URL.revokeObjectURL(item.src);
       }
       return { items: [], index: -1 };
     });
@@ -333,11 +404,11 @@ export default function Home() {
   };
 
   const applyLoras = async () => {
-    const payload: SetLora[] = Object.entries(selectedLoras).map(([path, weight]) => ({ path, weight }));
+    const payload: SetLoraRequest[] = Object.entries(selectedLoras).map(([path, weight]) => ({ path, weight }));
     setBusy("setLoras");
     setStatus("");
     try {
-      const applied = await fetchJson<SetLora[]>(urls.setLoras, {
+      const applied = await fetchJson<AppliedLora[]>(urls.setLoras, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -354,7 +425,7 @@ export default function Home() {
     setBusy("clearLoras");
     setStatus("");
     try {
-      await fetchJson<SetLora[]>(urls.clearLoras, { method: "POST" });
+      await fetchJson<AppliedLora[]>(urls.clearLoras, { method: "POST" });
       setCurrentLoras([]);
       setSelectedLoras({});
     } catch (e) {
@@ -368,7 +439,7 @@ export default function Home() {
     setBusy("clearModel");
     setStatus("");
     try {
-      await fetchJson<{ modelPath: string; loras: SetLora[] }>(urls.clearModel, { method: "POST" });
+      await fetchJson<{ modelPath: string; loras: AppliedLora[] }>(urls.clearModel, { method: "POST" });
       setCurrentModelPath("");
       setCurrentLoras([]);
       setSelectedModelPath("");
@@ -678,6 +749,60 @@ export default function Home() {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
+
+                  <div className="rounded-lg border bg-muted/20 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-medium">Applied trigger words</div>
+                        <p className="text-xs text-muted-foreground">Click a trigger word to copy it to your clipboard.</p>
+                      </div>
+                      <Badge variant="outline">{currentLoras.length} applied</Badge>
+                    </div>
+
+                    {currentLoras.length === 0 ? (
+                      <p className="mt-2 text-sm text-muted-foreground">No LoRAs applied.</p>
+                    ) : (
+                      <div className="mt-3 grid gap-2">
+                        {currentLoras
+                          .slice()
+                          .sort((a, b) => a.path.localeCompare(b.path))
+                          .map((l) => {
+                            const name = l.path.replaceAll("\\", "/").split("/").slice(-1)[0] ?? l.path;
+                            const words = parseTriggerWords(l.triggerWords);
+                            return (
+                              <div key={l.path} className="rounded-md border bg-background/50 p-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="min-w-0 flex-1 truncate text-xs font-medium" title={l.path}>
+                                    {name}
+                                  </div>
+                                  <Badge variant="outline" className="font-mono">
+                                    {l.weight}
+                                  </Badge>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {words.length === 0 ? (
+                                    <span className="text-xs text-muted-foreground">No trigger words found.</span>
+                                  ) : (
+                                    words.map((w) => (
+                                      <Badge
+                                        key={`${l.path}:${w}`}
+                                        asChild
+                                        variant="secondary"
+                                        className="cursor-pointer select-none hover:opacity-90"
+                                      >
+                                        <button type="button" onClick={() => copyToClipboard(w)} aria-label={`Copy ${w}`}>
+                                          {w}
+                                        </button>
+                                      </Badge>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -847,11 +972,32 @@ export default function Home() {
                   <p className="text-xs text-muted-foreground">Generate an image to start a history.</p>
                 )}
                 {previewSrc.startsWith("blob:") ? (
-                  <Button asChild variant="secondary" className="w-full">
-                    <a href={previewSrc} download="generated.png">
-                      Download
-                    </a>
-                  </Button>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Button asChild variant="secondary" className="w-full">
+                      <a href={previewSrc} download={downloadFilename}>
+                        Download image
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={!downloadPayload}
+                      onClick={() => {
+                        if (!downloadPayload) return;
+                        const json = JSON.stringify(downloadPayload, null, 2);
+                        const blob = new Blob([json], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${downloadPayload.id}.json`;
+                        a.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 5_000);
+                      }}
+                    >
+                      Download settings
+                    </Button>
+                  </div>
                 ) : null}
               </CardContent>
             </Card>
