@@ -5,6 +5,7 @@ option go_package = "proto/";
 
 service ImageService {
     rpc GenerateImage (GenerateImageRequest) returns (GenerateImageResponse);
+    rpc GenerateImageToVideo (GenerateImageToVideoRequest) returns (GenerateImageToVideoResonse);
     
     rpc ListModels (ListModelsRequest) returns (ListModelResponse);
     rpc SetModel (SetModelRequest) returns (SetModelResponse);
@@ -15,6 +16,12 @@ service ImageService {
     rpc SetLora (SetLoraRequest) returns (SetLoraResponse);
     rpc GetCurrentLoras (GetCurrentLorasRequest) returns (GetCurrentLorasResponse);
     rpc ClearLoras (ClearLorasRequest) returns (ClearLorasResponse);
+}
+
+enum ModelType {
+  _UNKOWN = 0;
+  t2i = 1;
+  i2v = 2;
 }
 
 message GenerateImageRequest {
@@ -38,6 +45,7 @@ message ListModelResponse {
 // Set Models
 message SetModelRequest {
     string model_path = 1;
+    ModelType model_type = 2;
 }
 
 message SetModelResponse {
@@ -88,4 +96,17 @@ message SetLoraRequest {
 
 message SetLoraResponse {
     repeated SetLora loras = 1;
+}
+
+// Image to Video
+message GenerateImageToVideoRequest {
+    bytes image = 1;
+    string positive_prompt = 2;
+    string negative_prompt = 3;
+}
+
+message GenerateImageToVideoResonse {
+    bytes video = 1;
+    string mime_type = 2;
+    string filename_hint = 3;
 }

@@ -7,6 +7,9 @@ type ImagePostRequest struct {
 
 type SetModelRequest struct {
 	ModelPath string `json:"modelPath"`
+	// ModelType maps to the proto enum values ("t2i" or "i2v").
+	// If omitted, the backend will default to "t2i" for backwards compatibility.
+	ModelType string `json:"modelType"`
 }
 
 type SetModelResponse struct {
@@ -54,4 +57,16 @@ type ListLorasResponse struct {
 
 type DownloadResponse struct {
 	JobID string `json:"jobId"`
+}
+
+type ImageToVideoRequest struct {
+	PositivePrompt string `json:"positivePrompt"`
+	NegativePrompt string `json:"negativePrompt"`
+	Image          []byte `json:"image"`
+}
+
+type ImageToVideoResponse struct {
+	VideoBytes []byte `json:"VideoBytes,omitempty"`
+	MimeType   string `json:"mimeType,omitempty"`
+	Filename   string `json:"filename,omitempty"`
 }
