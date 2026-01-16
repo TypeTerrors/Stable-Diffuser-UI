@@ -3,6 +3,7 @@ package dependencies
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"be/proto"
@@ -69,15 +70,56 @@ func (r *Rpc) GenerateImage(positivePrompt, negativePrompt string) (*proto.Gener
 	return resp, nil
 }
 
-func (r *Rpc) SetModel(modelPath string) (*proto.SetModelResponse, error) {
+func (r *Rpc) GenerateImageToVideo(image []byte, positivePrompt, negativePrompt string) (*proto.GenerateImageToVideoResonse, error) {
 	start := time.Now()
-	r.logger.Info("rpc SetModel", "modelPath", modelPath)
+	r.logger.Debug("rpc GenerateImage", "positiveLen", len(positivePrompt), "negativeLen", len(negativePrompt))
 	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 
 	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.GenerateImageToVideo(ctx, &proto.GenerateImageToVideoRequest{
+		PositivePrompt: positivePrompt,
+		NegativePrompt: negativePrompt,
+		Image:          image,
+	})
+
+	if err != nil {
+		r.logger.Error("rpc GenerateImageToVideo failed", "dur", time.Since(start).String(), "err", err)
+		return nil, err
+	}
+
+	r.logger.Info("rpc GenerateImage ok", "dur", time.Since(start).String(), "bytes", len(resp.Video))
+
+	return resp, nil
+}
+
+func parseModelType(value string) (proto.ModelType, error) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case "", "t2i":
+		return proto.ModelType_t2i, nil
+	case "i2v":
+		return proto.ModelType_i2v, nil
+	default:
+		return proto.ModelType__UNKOWN, fmt.Errorf("unknown modelType %q (expected \"t2i\" or \"i2v\")", value)
+	}
+}
+
+func (r *Rpc) SetModel(modelPath string, modelType string) (*proto.SetModelResponse, error) {
+	start := time.Now()
+	r.logger.Info("rpc SetModel", "modelPath", modelPath, "modelType", modelType)
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	defer cancel()
+
+	mt, err := parseModelType(modelType)
+	if err != nil {
+		return nil, err
+	}
+
+	client := proto.NewImageServiceClient(r.conn)
 	resp, err := client.SetModel(ctx, &proto.SetModelRequest{
 		ModelPath: modelPath,
+		ModelType: mt,
 	})
 	if err != nil {
 		r.logger.Error("rpc SetModel failed", "dur", time.Since(start).String(), "err", err)

@@ -1,8 +1,13 @@
 import io
 import math
 import os
+import tempfile
 from logging import Logger
 from pathlib import Path
+from ltx_pipelines.ti2vid_one_stage import TI2VidOneStagePipeline
+from ltx_pipelines.utils.media_io import encode_video
+from ltx_pipelines.utils.constants import AUDIO_SAMPLE_RATE
+
 
 import grpc
 import torch
@@ -23,6 +28,9 @@ from proto.img_service_pb2 import (
     SetLoraResponse,
     SetModelRequest,
     SetModelResponse,
+    GenerateImageToVideoRequest,
+    GenerateImageToVideoResonse,
+    ModelType
 )
 from proto.img_service_pb2_grpc import ImageServiceServicer
 
@@ -299,6 +307,66 @@ class ImageService(ImageServiceServicer):
             mime_type="image/png",
             filename_hint="sdxl.png"
         )
+    def GenerateImageToVideo(self, request: GenerateImageToVideoRequest, context):
+        if not hasattr(self, "pipe") or self.pipe is None:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, "Model must be set before generating images.")
+
+        if not isinstance(self.pipe, TI2VidOneStagePipeline):
+            context.abort(
+                grpc.StatusCode.FAILED_PRECONDITION,
+                "Current model is not an image-to-video pipeline; call SetModel with model_type=i2v first.",
+            )
+
+        if not request.image:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Bad Request: image is required.")
+
+        negative_prompt = request.negative_prompt or ""
+
+        with tempfile.TemporaryDirectory(prefix="img2vid_") as tmpdir:
+            image_path = os.path.join(tmpdir, "input.png")
+            output_path = os.path.join(tmpdir, "output.mp4")
+
+            try:
+                with open(image_path, "wb") as f:
+                    f.write(request.image)
+            except Exception as exc:
+                context.abort(grpc.StatusCode.INTERNAL, f"Failed to write temp image. ({exc})")
+
+            try:
+                video, audio = self.pipe(
+                    prompt=request.positive_prompt or "",
+                    negative_prompt=negative_prompt,
+                    seed=42,
+                    height=512,
+                    width=768,
+                    num_frames=121,
+                    frame_rate=25.0,
+                    num_inference_steps=40,
+                    cfg_guidance_scale=3.0,
+                    images=[(image_path, 0, 1.0)],
+                )
+
+                encode_video(
+                    video=video,
+                    fps=25,
+                    audio=audio,
+                    audio_sample_rate=AUDIO_SAMPLE_RATE,
+                    output_path=output_path,
+                    video_chunks_number=1,
+                )
+
+                with open(output_path, "rb") as f:
+                    video_bytes = f.read()
+            except grpc.RpcError:
+                raise
+            except Exception as exc:
+                context.abort(grpc.StatusCode.INTERNAL, f"Failed to generate video. ({exc})")
+
+        return GenerateImageToVideoResonse(
+            video=video_bytes,
+            mime_type="video/mp4",
+            filename_hint="ltx_i2v.mp4",
+        )
             
     def SetModel(self, request: SetModelRequest, context):
         model_path = Path(request.model_path)
@@ -308,16 +376,41 @@ class ImageService(ImageServiceServicer):
         if hasattr(self, "pipe") and self.pipe is not None:
             del self.pipe
 
-        self.pipe = StableDiffusionXLPipeline.from_single_file(
-            str(model_path),
-            torch_dtype=torch.float16,
-        ).to("cuda")
-        self.model_path = str(model_path)
-        self.current_loras = []
+        # use the stable diffusion pipeline from SDXL
+        if request.model_type == ModelType.t2i:
+            self.pipe = StableDiffusionXLPipeline.from_single_file(
+                str(model_path),
+                torch_dtype=torch.float16,
+            ).to("cuda")
+            self.model_path = str(model_path)
+            self.current_loras = []
 
-        return SetModelResponse(
-            model_path=str(model_path)
-        )
+            return SetModelResponse(
+                model_path=str(model_path)
+            )
+        
+        # use the image to video library from lighttricks ltx-2
+        if request.model_type == ModelType.i2v:
+            gemma_root = os.getenv("LTX_GEMMA_ROOT") or os.getenv("GEMMA_ROOT") or ""
+            if not gemma_root:
+                context.abort(
+                    grpc.StatusCode.FAILED_PRECONDITION,
+                    "LTX i2v requires a Gemma root path; set LTX_GEMMA_ROOT (or GEMMA_ROOT) in the container env.",
+                )
+
+            self.pipe = TI2VidOneStagePipeline(
+                checkpoint_path=str(model_path),
+                gemma_root=gemma_root,
+                loras=[],
+                device=torch.device("cuda"),
+            )
+            self.model_path = str(model_path)
+            self.current_loras = []
+            return SetModelResponse(
+                model_path=str(model_path)
+            )
+
+        return context.abort(grpc.StatusCode.ABORTED, f"Model not found: {request.model_path}")
 
     def GetCurrentModel(self, request: GetCurrentModelRequest, context):
         return GetCurrentModelResponse(model_path=getattr(self, "model_path", ""))

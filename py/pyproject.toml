@@ -6,10 +6,16 @@ authors = [
     {name = "Your Name",email = "you@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.10,<3.13"
 dependencies = [
-    "diffusers (>=0.36.0,<0.37.0)"
+    "diffusers (>=0.36.0,<0.37.0)",
+    "ltx-core @ git+https://github.com/Lightricks/LTX-2.git@main#subdirectory=packages/ltx-core",
+    "ltx-pipelines @ git+https://github.com/Lightricks/LTX-2.git@main#subdirectory=packages/ltx-pipelines",
+    "transformers (>=4.41.2)"
 ]
+
+[tool.poetry]
+package-mode = false
 
 
 [build-system]

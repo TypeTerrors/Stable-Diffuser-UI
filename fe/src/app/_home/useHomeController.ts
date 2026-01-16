@@ -31,7 +31,8 @@ type Urls = {
   download: URL;
 };
 
-export function useHomeController() {
+export function useHomeController(opts?: { modelType?: "t2i" | "i2v" }) {
+  const modelType = opts?.modelType ?? "t2i";
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
 
@@ -298,7 +299,7 @@ export function useHomeController() {
       const resp = await fetchJson<CurrentModelResponse>(urls.setModel, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelPath: selectedModelPath }),
+        body: JSON.stringify({ modelPath: selectedModelPath, modelType }),
       });
       setCurrentModelPath(resp.modelPath ?? "");
       setCurrentLoras([]);

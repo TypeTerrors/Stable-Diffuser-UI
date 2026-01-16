@@ -59,6 +59,40 @@ func (a *Api) GenerateImage() fiber.Handler {
 		return nil
 	}
 }
+
+func (a *Api) GenerateImageToVideo() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		logger := HttpLogger("GenerateImageToVideo", ctx)
+
+		var requestBody types.ImageToVideoRequest
+		if err := ctx.BodyParser(&requestBody); err != nil {
+			logger.Error("invalid body", "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid body",
+			})
+		}
+
+		logger.Info("GenerateImageToVideo requested", "positiveLen", len(requestBody.PositivePrompt), "negativeLen", len(requestBody.NegativePrompt))
+
+		resp, err := a.rpc.GenerateImageToVideo(requestBody.Image, requestBody.PositivePrompt, requestBody.NegativePrompt)
+		if err != nil {
+			logger.Error("generate failed", "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to generate video",
+			})
+		}
+
+		logger.Info("GenerateImageToVideo completed", "mimeType", resp.MimeType, "bytes", len(resp.Video))
+
+		ctx.Set(fiber.HeaderContentType, resp.MimeType)
+		ctx.Set(fiber.HeaderContentDisposition, fmt.Sprintf("inline; filename=%s", resp.FilenameHint))
+		ctx.Response().SetBodyRaw(resp.Video)
+		return nil
+	}
+}
+
 func (a *Api) ListModels() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		logger := HttpLogger("ListModels", ctx)
@@ -160,10 +194,10 @@ func (a *Api) SetModel() fiber.Handler {
 			})
 		}
 
-		logger.Info("set model requested", "modelPath", requestBody.ModelPath)
-		resp, err := a.rpc.SetModel(requestBody.ModelPath)
+		logger.Info("set model requested", "modelPath", requestBody.ModelPath, "modelType", requestBody.ModelType)
+		resp, err := a.rpc.SetModel(requestBody.ModelPath, requestBody.ModelType)
 		if err != nil {
-			logger.Error("set model failed", "modelPath", requestBody.ModelPath, "err", err)
+			logger.Error("set model failed", "modelPath", requestBody.ModelPath, "modelType", requestBody.ModelType, "err", err)
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   err.Error(),
 				Message: "python service failed to set model",

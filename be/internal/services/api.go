@@ -77,6 +77,7 @@ func (a *Api) Shutdown(ctx context.Context) error {
 func (a *Api) addRoutes() {
 	a.server.Add("GET", "/health", a.Health())
 	a.server.Add("POST", "/generateimage", a.GenerateImage())
+	a.server.Add("POST", "/generateimagetovideo", a.GenerateImageToVideo())
 	a.server.Add("GET", "/models", a.ListModels())
 	a.server.Add("GET", "/loras", a.ListLoras())
 	a.server.Add("POST", "/setmodel", a.SetModel())
