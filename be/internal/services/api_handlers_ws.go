@@ -42,3 +42,44 @@ func (a *Api) Notifications() fiber.Handler {
 		})
 	})
 }
+
+func (a *Api) WsConverstation() fiber.Handler {
+	return websocket.New(func(conn *websocket.Conn) {
+
+		userName := strings.TrimSpace(conn.Params("userName"))
+		if userName == "" {
+			userName = strings.TrimSpace(conn.Query("userName"))
+		}
+
+		if userName == "" {
+			conn.WriteJSON(WsConversationResponse{
+				Error: "missing usernanme",
+			})
+			conn.Close()
+			return
+		}
+
+		if err := a.ConversationManager.RegisterClient(userName, conn); err != nil {
+			conn.WriteJSON(WsConversationResponse{
+				Error: err.Error(),
+			})
+			conn.Close()
+			return
+		}
+
+		defer func() {
+			a.ConversationManager.RemoveClient(userName)
+			_ = conn.Close()
+			log.Info("ws disconnected", "component", "conversation", "userName", userName)
+		}()
+
+		log.Info("ws connected", "component", "conversation", "userName", userName)
+
+		for {
+			// Block until the client disconnects (or sends a close frame).
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	})
+}

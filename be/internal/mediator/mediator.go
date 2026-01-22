@@ -30,16 +30,18 @@ type App struct {
 func NewApp(config config.Config) (*App, error) {
 	log.Info("app init", "component", "mediator", "env", config.Env, "apiPort", config.Api.Port, "rpcPeer", config.Rpc.Peer, "rpcPort", config.Rpc.Port)
 
-	rpc, err := dependencies.NewRpc(config.Rpc.Peer, config.Rpc.Port)
-	if err != nil {
-		return nil, fmt.Errorf("error creating newapp: %w", err)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	hub := services.NewHub()
 	dl := services.NewDownloaderService(hub, config.Api.Dl, ctx)
-	api := services.NewApi(rpc, config.Api, hub, dl)
+	cm := services.NewConverstaionManager()
+
+	rpc, err := dependencies.NewRpc(config.Rpc.Peer, config.Rpc.Port, cm)
+	if err != nil {
+		return nil, fmt.Errorf("error creating newapp: %w", err)
+	}
+
+	api := services.NewApi(rpc, config.Api, hub, dl, cm)
 
 	return &App{
 		api:    api,

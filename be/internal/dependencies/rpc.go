@@ -2,7 +2,9 @@ package dependencies
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"be/proto"
@@ -13,15 +15,22 @@ import (
 	"github.com/charmbracelet/log"
 )
 
+type ConversationSink interface {
+	SendMessage(username string, message []byte) bool
+}
+
 type Rpc struct {
 	ctx    *context.Context
 	cancel context.CancelFunc
 	conn   *grpc.ClientConn
 	peer   string
 	logger *log.Logger
+
+	// technicall the conversation manager responsbile for sending messages on client websocket
+	sink   ConversationSink
 }
 
-func NewRpc(peer, port string) (*Rpc, error) {
+func NewRpc(peer, port string, sink ConversationSink) (*Rpc, error) {
 	addr := fmt.Sprint(peer, ":", port)
 	logger := log.With("component", "rpc", "peer", addr)
 	logger.Info("rpc connecting")
@@ -47,6 +56,7 @@ func NewRpc(peer, port string) (*Rpc, error) {
 		cancel: cancel,
 		peer:   addr,
 		logger: logger,
+		sink:   sink,
 	}, nil
 }
 
@@ -167,6 +177,31 @@ func (r *Rpc) SetLoras(loraPaths []*proto.SetLora) (*proto.SetLoraResponse, erro
 	}
 	r.logger.Info("rpc SetLoras ok", "dur", time.Since(start).String(), "applied", len(resp.Loras))
 	return resp, nil
+}
+
+func (r *Rpc) Conversation(ctx context.Context, req *proto.ConversationRequest) error {
+
+	r.logger.Info("rpc conversation initiated")
+
+	stream, err := proto.NewImageServiceClient(r.conn).Conversation(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	for {
+		msg, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			// stream finished
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if r.sink != nil {
+			r.sink.SendMessage(req.Username, msg.Message)
+		}
+	}
 }
 
 func (r *Rpc) Close() {

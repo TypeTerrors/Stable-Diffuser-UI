@@ -55,3 +55,10 @@ type ListLorasResponse struct {
 type DownloadResponse struct {
 	JobID string `json:"jobId"`
 }
+
+type ConversationRequest struct {
+	Username string `json:"username"`
+}
+type ConversationEstablishedResponse struct {
+	Status int `json:"status"`
+}

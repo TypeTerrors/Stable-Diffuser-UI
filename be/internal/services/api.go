@@ -12,28 +12,30 @@ import (
 )
 
 type Api struct {
-	server         *fiber.App
-	rpc            *dependencies.Rpc
-	port           string
-	allowedOrigins string
-	hub            *Hub
-	dl             *DownloaderService
-	logger         *log.Logger
+	server              *fiber.App
+	rpc                 *dependencies.Rpc
+	port                string
+	allowedOrigins      string
+	hub                 *Hub
+	dl                  *DownloaderService
+	logger              *log.Logger
+	ConversationManager *ConversationManager
 }
 
-func NewApi(rpc *dependencies.Rpc, config config.ApiConfig, hub *Hub, dl *DownloaderService) *Api {
+func NewApi(rpc *dependencies.Rpc, config config.ApiConfig, hub *Hub, dl *DownloaderService, cm *ConversationManager) *Api {
 	if config.AllowedOrigins == "" {
 		config.AllowedOrigins = "*"
 	}
 
 	return &Api{
-		server:         fiber.New(),
-		rpc:            rpc,
-		port:           config.Port,
-		allowedOrigins: config.AllowedOrigins,
-		hub:            hub,
-		dl:             dl,
-		logger:         log.With("component", "api"),
+		server:              fiber.New(),
+		rpc:                 rpc,
+		port:                config.Port,
+		allowedOrigins:      config.AllowedOrigins,
+		hub:                 hub,
+		dl:                  dl,
+		logger:              log.With("component", "api"),
+		ConversationManager: cm,
 	}
 }
 
@@ -75,6 +77,8 @@ func (a *Api) Shutdown(ctx context.Context) error {
 }
 
 func (a *Api) addRoutes() {
+
+	// rest endpoints
 	a.server.Add("GET", "/health", a.Health())
 	a.server.Add("POST", "/generateimage", a.GenerateImage())
 	a.server.Add("GET", "/models", a.ListModels())
@@ -86,8 +90,12 @@ func (a *Api) addRoutes() {
 	a.server.Add("POST", "/clearmodel", a.ClearModel())
 	a.server.Add("POST", "/clearloras", a.ClearLoras())
 	a.server.Add("POST", "/download", a.DownloadModel())
+	a.server.Add("POST", "/conversation", a.Conversation())
 
 	// websocket connection
 	a.server.Use("/ws", a.WsUpgrade())
 	a.server.Get("/ws/:id", a.Notifications())
+
+	a.server.Use("/conversation", a.WsUpgrade())
+	a.server.Get("/conversation/:userName", a.WsConverstation())
 }

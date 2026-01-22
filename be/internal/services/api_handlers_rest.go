@@ -3,6 +3,7 @@ package services
 import (
 	"be/proto"
 	"be/types"
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -411,5 +412,48 @@ func (a *Api) DownloadModel() fiber.Handler {
 
 		logger.Info("download enqueued", "jobId", jobID)
 		return ctx.Status(fiber.StatusAccepted).JSON(types.DownloadResponse{JobID: jobID})
+	}
+}
+
+func (a *Api) Conversation() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		logger := HttpLogger("Conversation", ctx)
+
+		var requestBody types.ConversationRequest
+		if err := ctx.BodyParser(&requestBody); err != nil {
+			logger.Error("invalid body", "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid body",
+			})
+		}
+
+		a.ConversationManager.mx.Lock()
+		if _, ok := a.ConversationManager.clients[requestBody.Username]; !ok {
+			
+			a.ConversationManager.mx.Unlock()
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   fmt.Errorf("Username does not have websocket connection established").Error(),
+				Message: "invalid body",
+			})
+		}
+		a.ConversationManager.mx.Unlock()
+
+		go func() {
+			streamCtx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+			a.ConversationManager.SetStreamCancel(requestBody.Username, cancel)
+			defer cancel()
+			defer a.ConversationManager.ClearStreamCancel(requestBody.Username)
+
+			if err := a.rpc.Conversation(streamCtx, &proto.ConversationRequest{
+				Username: requestBody.Username,
+			}); err != nil {
+				log.Error("rpc conversation failed", "username", requestBody.Username, "err", err)
+			}
+		}()
+
+		return ctx.Status(fiber.StatusAccepted).JSON(types.ConversationEstablishedResponse{
+			Status: fiber.StatusOK,
+		})
 	}
 }

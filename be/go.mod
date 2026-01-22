@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/gofiber/contrib/websocket v1.3.4
 	github.com/gofiber/fiber/v2 v2.52.10
+	github.com/google/uuid v1.6.0
 	golang.org/x/sync v0.17.0
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
@@ -22,7 +23,6 @@ require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/fasthttp/websocket v1.5.8 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
