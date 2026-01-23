@@ -471,6 +471,95 @@ func (x *ClearModelResponse) GetLoras() []*SetLora {
 	return nil
 }
 
+// Set LLM Model
+type SetLlmModelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelPath     string                 `protobuf:"bytes,1,opt,name=model_path,json=modelPath,proto3" json:"model_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetLlmModelRequest) Reset() {
+	*x = SetLlmModelRequest{}
+	mi := &file_proto_image_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetLlmModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetLlmModelRequest) ProtoMessage() {}
+
+func (x *SetLlmModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_image_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetLlmModelRequest.ProtoReflect.Descriptor instead.
+func (*SetLlmModelRequest) Descriptor() ([]byte, []int) {
+	return file_proto_image_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *SetLlmModelRequest) GetModelPath() string {
+	if x != nil {
+		return x.ModelPath
+	}
+	return ""
+}
+
+type SetLlmModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelPath     string                 `protobuf:"bytes,1,opt,name=model_path,json=modelPath,proto3" json:"model_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetLlmModelResponse) Reset() {
+	*x = SetLlmModelResponse{}
+	mi := &file_proto_image_service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetLlmModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetLlmModelResponse) ProtoMessage() {}
+
+func (x *SetLlmModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_image_service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetLlmModelResponse.ProtoReflect.Descriptor instead.
+func (*SetLlmModelResponse) Descriptor() ([]byte, []int) {
+	return file_proto_image_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *SetLlmModelResponse) GetModelPath() string {
+	if x != nil {
+		return x.ModelPath
+	}
+	return ""
+}
+
 type GetCurrentLorasRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -479,7 +568,7 @@ type GetCurrentLorasRequest struct {
 
 func (x *GetCurrentLorasRequest) Reset() {
 	*x = GetCurrentLorasRequest{}
-	mi := &file_proto_image_service_proto_msgTypes[10]
+	mi := &file_proto_image_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -491,7 +580,7 @@ func (x *GetCurrentLorasRequest) String() string {
 func (*GetCurrentLorasRequest) ProtoMessage() {}
 
 func (x *GetCurrentLorasRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[10]
+	mi := &file_proto_image_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -504,7 +593,7 @@ func (x *GetCurrentLorasRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCurrentLorasRequest.ProtoReflect.Descriptor instead.
 func (*GetCurrentLorasRequest) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{10}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{12}
 }
 
 type GetCurrentLorasResponse struct {
@@ -516,7 +605,7 @@ type GetCurrentLorasResponse struct {
 
 func (x *GetCurrentLorasResponse) Reset() {
 	*x = GetCurrentLorasResponse{}
-	mi := &file_proto_image_service_proto_msgTypes[11]
+	mi := &file_proto_image_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +617,7 @@ func (x *GetCurrentLorasResponse) String() string {
 func (*GetCurrentLorasResponse) ProtoMessage() {}
 
 func (x *GetCurrentLorasResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[11]
+	mi := &file_proto_image_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +630,7 @@ func (x *GetCurrentLorasResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCurrentLorasResponse.ProtoReflect.Descriptor instead.
 func (*GetCurrentLorasResponse) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{11}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetCurrentLorasResponse) GetLoras() []*SetLora {
@@ -559,7 +648,7 @@ type ClearLorasRequest struct {
 
 func (x *ClearLorasRequest) Reset() {
 	*x = ClearLorasRequest{}
-	mi := &file_proto_image_service_proto_msgTypes[12]
+	mi := &file_proto_image_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -571,7 +660,7 @@ func (x *ClearLorasRequest) String() string {
 func (*ClearLorasRequest) ProtoMessage() {}
 
 func (x *ClearLorasRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[12]
+	mi := &file_proto_image_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -584,7 +673,7 @@ func (x *ClearLorasRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearLorasRequest.ProtoReflect.Descriptor instead.
 func (*ClearLorasRequest) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{12}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{14}
 }
 
 type ClearLorasResponse struct {
@@ -596,7 +685,7 @@ type ClearLorasResponse struct {
 
 func (x *ClearLorasResponse) Reset() {
 	*x = ClearLorasResponse{}
-	mi := &file_proto_image_service_proto_msgTypes[13]
+	mi := &file_proto_image_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -608,7 +697,7 @@ func (x *ClearLorasResponse) String() string {
 func (*ClearLorasResponse) ProtoMessage() {}
 
 func (x *ClearLorasResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[13]
+	mi := &file_proto_image_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -621,7 +710,7 @@ func (x *ClearLorasResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearLorasResponse.ProtoReflect.Descriptor instead.
 func (*ClearLorasResponse) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{13}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ClearLorasResponse) GetLoras() []*SetLora {
@@ -640,7 +729,7 @@ type ListLorasRequest struct {
 
 func (x *ListLorasRequest) Reset() {
 	*x = ListLorasRequest{}
-	mi := &file_proto_image_service_proto_msgTypes[14]
+	mi := &file_proto_image_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -652,7 +741,7 @@ func (x *ListLorasRequest) String() string {
 func (*ListLorasRequest) ProtoMessage() {}
 
 func (x *ListLorasRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[14]
+	mi := &file_proto_image_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -665,7 +754,7 @@ func (x *ListLorasRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLorasRequest.ProtoReflect.Descriptor instead.
 func (*ListLorasRequest) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{14}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{16}
 }
 
 type ListLorasResponse struct {
@@ -677,7 +766,7 @@ type ListLorasResponse struct {
 
 func (x *ListLorasResponse) Reset() {
 	*x = ListLorasResponse{}
-	mi := &file_proto_image_service_proto_msgTypes[15]
+	mi := &file_proto_image_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -689,7 +778,7 @@ func (x *ListLorasResponse) String() string {
 func (*ListLorasResponse) ProtoMessage() {}
 
 func (x *ListLorasResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[15]
+	mi := &file_proto_image_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -702,7 +791,7 @@ func (x *ListLorasResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLorasResponse.ProtoReflect.Descriptor instead.
 func (*ListLorasResponse) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{15}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListLorasResponse) GetLoraPath() []string {
@@ -723,7 +812,7 @@ type SetLora struct {
 
 func (x *SetLora) Reset() {
 	*x = SetLora{}
-	mi := &file_proto_image_service_proto_msgTypes[16]
+	mi := &file_proto_image_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -735,7 +824,7 @@ func (x *SetLora) String() string {
 func (*SetLora) ProtoMessage() {}
 
 func (x *SetLora) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[16]
+	mi := &file_proto_image_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -748,7 +837,7 @@ func (x *SetLora) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetLora.ProtoReflect.Descriptor instead.
 func (*SetLora) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{16}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SetLora) GetWeight() float32 {
@@ -774,7 +863,7 @@ type SetLoraRequest struct {
 
 func (x *SetLoraRequest) Reset() {
 	*x = SetLoraRequest{}
-	mi := &file_proto_image_service_proto_msgTypes[17]
+	mi := &file_proto_image_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -786,7 +875,7 @@ func (x *SetLoraRequest) String() string {
 func (*SetLoraRequest) ProtoMessage() {}
 
 func (x *SetLoraRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[17]
+	mi := &file_proto_image_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,7 +888,7 @@ func (x *SetLoraRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetLoraRequest.ProtoReflect.Descriptor instead.
 func (*SetLoraRequest) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{17}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SetLoraRequest) GetLoras() []*SetLora {
@@ -818,7 +907,7 @@ type SetLoraResponse struct {
 
 func (x *SetLoraResponse) Reset() {
 	*x = SetLoraResponse{}
-	mi := &file_proto_image_service_proto_msgTypes[18]
+	mi := &file_proto_image_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -830,7 +919,7 @@ func (x *SetLoraResponse) String() string {
 func (*SetLoraResponse) ProtoMessage() {}
 
 func (x *SetLoraResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[18]
+	mi := &file_proto_image_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +932,7 @@ func (x *SetLoraResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetLoraResponse.ProtoReflect.Descriptor instead.
 func (*SetLoraResponse) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{18}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SetLoraResponse) GetLoras() []*SetLora {
@@ -857,13 +946,14 @@ func (x *SetLoraResponse) GetLoras() []*SetLora {
 type ConversationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Prompt        string                 `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConversationRequest) Reset() {
 	*x = ConversationRequest{}
-	mi := &file_proto_image_service_proto_msgTypes[19]
+	mi := &file_proto_image_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -875,7 +965,7 @@ func (x *ConversationRequest) String() string {
 func (*ConversationRequest) ProtoMessage() {}
 
 func (x *ConversationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[19]
+	mi := &file_proto_image_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -888,12 +978,19 @@ func (x *ConversationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationRequest.ProtoReflect.Descriptor instead.
 func (*ConversationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{19}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ConversationRequest) GetUsername() string {
 	if x != nil {
 		return x.Username
+	}
+	return ""
+}
+
+func (x *ConversationRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
 	}
 	return ""
 }
@@ -908,7 +1005,7 @@ type ConversationResponse struct {
 
 func (x *ConversationResponse) Reset() {
 	*x = ConversationResponse{}
-	mi := &file_proto_image_service_proto_msgTypes[20]
+	mi := &file_proto_image_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -920,7 +1017,7 @@ func (x *ConversationResponse) String() string {
 func (*ConversationResponse) ProtoMessage() {}
 
 func (x *ConversationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_image_service_proto_msgTypes[20]
+	mi := &file_proto_image_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -933,7 +1030,7 @@ func (x *ConversationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationResponse.ProtoReflect.Descriptor instead.
 func (*ConversationResponse) Descriptor() ([]byte, []int) {
-	return file_proto_image_service_proto_rawDescGZIP(), []int{20}
+	return file_proto_image_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ConversationResponse) GetUsername() string {
@@ -980,7 +1077,13 @@ const file_proto_image_service_proto_rawDesc = "" +
 	"\x12ClearModelResponse\x12\x1d\n" +
 	"\n" +
 	"model_path\x18\x01 \x01(\tR\tmodelPath\x12(\n" +
-	"\x05loras\x18\x02 \x03(\v2\x12.generator.SetLoraR\x05loras\"\x18\n" +
+	"\x05loras\x18\x02 \x03(\v2\x12.generator.SetLoraR\x05loras\"3\n" +
+	"\x12SetLlmModelRequest\x12\x1d\n" +
+	"\n" +
+	"model_path\x18\x01 \x01(\tR\tmodelPath\"4\n" +
+	"\x13SetLlmModelResponse\x12\x1d\n" +
+	"\n" +
+	"model_path\x18\x01 \x01(\tR\tmodelPath\"\x18\n" +
 	"\x16GetCurrentLorasRequest\"C\n" +
 	"\x17GetCurrentLorasResponse\x12(\n" +
 	"\x05loras\x18\x01 \x03(\v2\x12.generator.SetLoraR\x05loras\"\x13\n" +
@@ -996,12 +1099,13 @@ const file_proto_image_service_proto_rawDesc = "" +
 	"\x0eSetLoraRequest\x12(\n" +
 	"\x05loras\x18\x01 \x03(\v2\x12.generator.SetLoraR\x05loras\";\n" +
 	"\x0fSetLoraResponse\x12(\n" +
-	"\x05loras\x18\x01 \x03(\v2\x12.generator.SetLoraR\x05loras\"1\n" +
+	"\x05loras\x18\x01 \x03(\v2\x12.generator.SetLoraR\x05loras\"I\n" +
 	"\x13ConversationRequest\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\"L\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x16\n" +
+	"\x06prompt\x18\x02 \x01(\tR\x06prompt\"L\n" +
 	"\x14ConversationResponse\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\fR\amessage2\x98\x06\n" +
+	"\amessage\x18\x02 \x01(\fR\amessage2\xe6\x06\n" +
 	"\fImageService\x12R\n" +
 	"\rGenerateImage\x12\x1f.generator.GenerateImageRequest\x1a .generator.GenerateImageResponse\x12H\n" +
 	"\n" +
@@ -1009,7 +1113,8 @@ const file_proto_image_service_proto_rawDesc = "" +
 	"\bSetModel\x12\x1a.generator.SetModelRequest\x1a\x1b.generator.SetModelResponse\x12X\n" +
 	"\x0fGetCurrentModel\x12!.generator.GetCurrentModelRequest\x1a\".generator.GetCurrentModelResponse\x12I\n" +
 	"\n" +
-	"ClearModel\x12\x1c.generator.ClearModelRequest\x1a\x1d.generator.ClearModelResponse\x12F\n" +
+	"ClearModel\x12\x1c.generator.ClearModelRequest\x1a\x1d.generator.ClearModelResponse\x12L\n" +
+	"\vSetLlmModel\x12\x1d.generator.SetLlmModelRequest\x1a\x1e.generator.SetLlmModelResponse\x12F\n" +
 	"\tListLoras\x12\x1b.generator.ListLorasRequest\x1a\x1c.generator.ListLorasResponse\x12@\n" +
 	"\aSetLora\x12\x19.generator.SetLoraRequest\x1a\x1a.generator.SetLoraResponse\x12X\n" +
 	"\x0fGetCurrentLoras\x12!.generator.GetCurrentLorasRequest\x1a\".generator.GetCurrentLorasResponse\x12I\n" +
@@ -1029,7 +1134,7 @@ func file_proto_image_service_proto_rawDescGZIP() []byte {
 	return file_proto_image_service_proto_rawDescData
 }
 
-var file_proto_image_service_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_proto_image_service_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_proto_image_service_proto_goTypes = []any{
 	(*GenerateImageRequest)(nil),    // 0: generator.GenerateImageRequest
 	(*GenerateImageResponse)(nil),   // 1: generator.GenerateImageResponse
@@ -1041,46 +1146,50 @@ var file_proto_image_service_proto_goTypes = []any{
 	(*GetCurrentModelResponse)(nil), // 7: generator.GetCurrentModelResponse
 	(*ClearModelRequest)(nil),       // 8: generator.ClearModelRequest
 	(*ClearModelResponse)(nil),      // 9: generator.ClearModelResponse
-	(*GetCurrentLorasRequest)(nil),  // 10: generator.GetCurrentLorasRequest
-	(*GetCurrentLorasResponse)(nil), // 11: generator.GetCurrentLorasResponse
-	(*ClearLorasRequest)(nil),       // 12: generator.ClearLorasRequest
-	(*ClearLorasResponse)(nil),      // 13: generator.ClearLorasResponse
-	(*ListLorasRequest)(nil),        // 14: generator.ListLorasRequest
-	(*ListLorasResponse)(nil),       // 15: generator.ListLorasResponse
-	(*SetLora)(nil),                 // 16: generator.SetLora
-	(*SetLoraRequest)(nil),          // 17: generator.SetLoraRequest
-	(*SetLoraResponse)(nil),         // 18: generator.SetLoraResponse
-	(*ConversationRequest)(nil),     // 19: generator.ConversationRequest
-	(*ConversationResponse)(nil),    // 20: generator.ConversationResponse
+	(*SetLlmModelRequest)(nil),      // 10: generator.SetLlmModelRequest
+	(*SetLlmModelResponse)(nil),     // 11: generator.SetLlmModelResponse
+	(*GetCurrentLorasRequest)(nil),  // 12: generator.GetCurrentLorasRequest
+	(*GetCurrentLorasResponse)(nil), // 13: generator.GetCurrentLorasResponse
+	(*ClearLorasRequest)(nil),       // 14: generator.ClearLorasRequest
+	(*ClearLorasResponse)(nil),      // 15: generator.ClearLorasResponse
+	(*ListLorasRequest)(nil),        // 16: generator.ListLorasRequest
+	(*ListLorasResponse)(nil),       // 17: generator.ListLorasResponse
+	(*SetLora)(nil),                 // 18: generator.SetLora
+	(*SetLoraRequest)(nil),          // 19: generator.SetLoraRequest
+	(*SetLoraResponse)(nil),         // 20: generator.SetLoraResponse
+	(*ConversationRequest)(nil),     // 21: generator.ConversationRequest
+	(*ConversationResponse)(nil),    // 22: generator.ConversationResponse
 }
 var file_proto_image_service_proto_depIdxs = []int32{
-	16, // 0: generator.ClearModelResponse.loras:type_name -> generator.SetLora
-	16, // 1: generator.GetCurrentLorasResponse.loras:type_name -> generator.SetLora
-	16, // 2: generator.ClearLorasResponse.loras:type_name -> generator.SetLora
-	16, // 3: generator.SetLoraRequest.loras:type_name -> generator.SetLora
-	16, // 4: generator.SetLoraResponse.loras:type_name -> generator.SetLora
+	18, // 0: generator.ClearModelResponse.loras:type_name -> generator.SetLora
+	18, // 1: generator.GetCurrentLorasResponse.loras:type_name -> generator.SetLora
+	18, // 2: generator.ClearLorasResponse.loras:type_name -> generator.SetLora
+	18, // 3: generator.SetLoraRequest.loras:type_name -> generator.SetLora
+	18, // 4: generator.SetLoraResponse.loras:type_name -> generator.SetLora
 	0,  // 5: generator.ImageService.GenerateImage:input_type -> generator.GenerateImageRequest
 	2,  // 6: generator.ImageService.ListModels:input_type -> generator.ListModelsRequest
 	4,  // 7: generator.ImageService.SetModel:input_type -> generator.SetModelRequest
 	6,  // 8: generator.ImageService.GetCurrentModel:input_type -> generator.GetCurrentModelRequest
 	8,  // 9: generator.ImageService.ClearModel:input_type -> generator.ClearModelRequest
-	14, // 10: generator.ImageService.ListLoras:input_type -> generator.ListLorasRequest
-	17, // 11: generator.ImageService.SetLora:input_type -> generator.SetLoraRequest
-	10, // 12: generator.ImageService.GetCurrentLoras:input_type -> generator.GetCurrentLorasRequest
-	12, // 13: generator.ImageService.ClearLoras:input_type -> generator.ClearLorasRequest
-	19, // 14: generator.ImageService.Conversation:input_type -> generator.ConversationRequest
-	1,  // 15: generator.ImageService.GenerateImage:output_type -> generator.GenerateImageResponse
-	3,  // 16: generator.ImageService.ListModels:output_type -> generator.ListModelResponse
-	5,  // 17: generator.ImageService.SetModel:output_type -> generator.SetModelResponse
-	7,  // 18: generator.ImageService.GetCurrentModel:output_type -> generator.GetCurrentModelResponse
-	9,  // 19: generator.ImageService.ClearModel:output_type -> generator.ClearModelResponse
-	15, // 20: generator.ImageService.ListLoras:output_type -> generator.ListLorasResponse
-	18, // 21: generator.ImageService.SetLora:output_type -> generator.SetLoraResponse
-	11, // 22: generator.ImageService.GetCurrentLoras:output_type -> generator.GetCurrentLorasResponse
-	13, // 23: generator.ImageService.ClearLoras:output_type -> generator.ClearLorasResponse
-	20, // 24: generator.ImageService.Conversation:output_type -> generator.ConversationResponse
-	15, // [15:25] is the sub-list for method output_type
-	5,  // [5:15] is the sub-list for method input_type
+	10, // 10: generator.ImageService.SetLlmModel:input_type -> generator.SetLlmModelRequest
+	16, // 11: generator.ImageService.ListLoras:input_type -> generator.ListLorasRequest
+	19, // 12: generator.ImageService.SetLora:input_type -> generator.SetLoraRequest
+	12, // 13: generator.ImageService.GetCurrentLoras:input_type -> generator.GetCurrentLorasRequest
+	14, // 14: generator.ImageService.ClearLoras:input_type -> generator.ClearLorasRequest
+	21, // 15: generator.ImageService.Conversation:input_type -> generator.ConversationRequest
+	1,  // 16: generator.ImageService.GenerateImage:output_type -> generator.GenerateImageResponse
+	3,  // 17: generator.ImageService.ListModels:output_type -> generator.ListModelResponse
+	5,  // 18: generator.ImageService.SetModel:output_type -> generator.SetModelResponse
+	7,  // 19: generator.ImageService.GetCurrentModel:output_type -> generator.GetCurrentModelResponse
+	9,  // 20: generator.ImageService.ClearModel:output_type -> generator.ClearModelResponse
+	11, // 21: generator.ImageService.SetLlmModel:output_type -> generator.SetLlmModelResponse
+	17, // 22: generator.ImageService.ListLoras:output_type -> generator.ListLorasResponse
+	20, // 23: generator.ImageService.SetLora:output_type -> generator.SetLoraResponse
+	13, // 24: generator.ImageService.GetCurrentLoras:output_type -> generator.GetCurrentLorasResponse
+	15, // 25: generator.ImageService.ClearLoras:output_type -> generator.ClearLorasResponse
+	22, // 26: generator.ImageService.Conversation:output_type -> generator.ConversationResponse
+	16, // [16:27] is the sub-list for method output_type
+	5,  // [5:16] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -1097,7 +1206,7 @@ func file_proto_image_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_image_service_proto_rawDesc), len(file_proto_image_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

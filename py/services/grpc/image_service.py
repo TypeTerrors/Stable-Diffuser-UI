@@ -1,12 +1,20 @@
+import asyncio
 import io
 import math
 import os
+import threading
+import time
+import uuid
+from dataclasses import dataclass
 from logging import Logger
 from pathlib import Path
+from typing import AsyncIterator, Tuple
 
 import grpc
 import torch
 from diffusers import StableDiffusionXLPipeline
+from vllm.engine.async_llm_engine import AsyncLLMEngine
+from vllm.sampling_params import SamplingParams
 from proto.img_service_pb2 import (
     ClearModelRequest,
     ClearModelResponse,
@@ -18,18 +26,79 @@ from proto.img_service_pb2 import (
     GetCurrentModelResponse,
     GetCurrentLorasRequest,
     GetCurrentLorasResponse,
+    SetLlmModelRequest,
+    SetLlmModelResponse,
     SetLora,
     SetLoraRequest,
     SetLoraResponse,
     SetModelRequest,
     SetModelResponse,
+    ConversationRequest,
+    ConversationResponse,
 )
 from proto.img_service_pb2_grpc import ImageServiceServicer
+
+# vLLM arg utils import path varies by version; handle both common cases.
+try:
+    from vllm.engine.arg_utils import AsyncEngineArgs as EngineArgs
+except Exception:
+    from vllm.engine.arg_utils import EngineArgs  # type: ignore
+
+# ---- LLM Config ----
+_DEFAULT_LLM_DIR = Path(__file__).resolve().parents[2] / "models" / "llm"
+LLM_MODEL_DIR = Path(os.getenv("LLM_MODEL_DIR", str(_DEFAULT_LLM_DIR))).resolve()
+LLM_DEFAULT_MODEL = os.getenv("LLM_DEFAULT_MODEL", "").strip()
+LLM_DTYPE = os.getenv("LLM_DTYPE", "auto")
+LLM_MAX_MODEL_LEN = int(os.getenv("LLM_MAX_MODEL_LEN", "8192"))
+LLM_GPU_MEM_UTIL = float(os.getenv("LLM_GPU_MEM_UTIL", "0.90"))
+LLM_MAX_NUM_SEQS = int(os.getenv("LLM_MAX_NUM_SEQS", "64"))
+LLM_MAX_BATCHED_TOKENS = int(os.getenv("LLM_MAX_BATCHED_TOKENS", "8192"))
+LLM_TP_SIZE = int(os.getenv("LLM_TP_SIZE", "1"))
+
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "256"))
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
+LLM_TOP_P = float(os.getenv("LLM_TOP_P", "0.95"))
+
+LLM_FLUSH_EVERY_MS = int(os.getenv("LLM_FLUSH_EVERY_MS", "25"))
+LLM_FLUSH_MAX_CHARS = int(os.getenv("LLM_FLUSH_MAX_CHARS", "512"))
+
+
+@dataclass
+class StreamBuffer:
+    parts: list[str]
+    char_count: int
+    last_flush_monotonic: float
+
+    @classmethod
+    def new(cls) -> "StreamBuffer":
+        return cls(parts=[], char_count=0, last_flush_monotonic=time.monotonic())
+
+    def add(self, s: str) -> None:
+        if not s:
+            return
+        self.parts.append(s)
+        self.char_count += len(s)
+
+    def has_data(self) -> bool:
+        return self.char_count > 0
+
+    def take_all(self) -> str:
+        out = "".join(self.parts)
+        self.parts.clear()
+        self.char_count = 0
+        self.last_flush_monotonic = time.monotonic()
+        return out
+
 
 class ImageService(ImageServiceServicer):
 
     def __init__(self, log: Logger):
         self.log = log
+        self._llm_loop = None
+        self._llm_loop_thread = None
+        self._llm_lock = threading.Lock()
+        self.llm = None
+        self.llm_model_path = ""
 
     def _execution_device_for_pipe(self) -> torch.device:
         device = getattr(self.pipe, "_execution_device", None)
@@ -319,6 +388,24 @@ class ImageService(ImageServiceServicer):
             model_path=str(model_path)
         )
 
+    def SetLlmModel(self, request: SetLlmModelRequest, context):
+        model_path = (request.model_path or "").strip()
+        try:
+            resolved = self._resolve_llm_model_path(model_path)
+        except ValueError as exc:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+        except FileNotFoundError as exc:
+            context.abort(grpc.StatusCode.NOT_FOUND, str(exc))
+
+        try:
+            self._load_llm_engine(resolved)
+        except Exception:
+            self.log.exception("Failed to load LLM model")
+            context.abort(grpc.StatusCode.INTERNAL, "Failed to load LLM model.")
+
+        self.log.info("Loaded LLM model", extra={"model_path": str(resolved)})
+        return SetLlmModelResponse(model_path=str(resolved))
+
     def GetCurrentModel(self, request: GetCurrentModelRequest, context):
         return GetCurrentModelResponse(model_path=getattr(self, "model_path", ""))
 
@@ -425,3 +512,214 @@ class ImageService(ImageServiceServicer):
 
         self.current_loras = applied
         return SetLoraResponse(loras=applied)
+
+    def _ensure_llm_loop(self) -> None:
+        if self._llm_loop is not None:
+            return
+        self._llm_loop = asyncio.new_event_loop()
+        self._llm_loop_thread = threading.Thread(
+            target=self._llm_loop.run_forever,
+            daemon=True,
+        )
+        self._llm_loop_thread.start()
+
+    def _resolve_llm_model_path(self, model_path: str) -> Path:
+        if not model_path:
+            raise ValueError("model_path is required")
+        path = Path(model_path)
+        if not path.is_absolute():
+            path = LLM_MODEL_DIR / path
+        path = path.resolve()
+        base_dir = LLM_MODEL_DIR.resolve()
+        if base_dir not in path.parents and path != base_dir:
+            raise ValueError(f"model_path must be within {base_dir}")
+        if not path.exists():
+            raise FileNotFoundError(f"LLM model not found: {path}")
+        return path
+
+    def _load_llm_engine(self, model_path: Path) -> None:
+        self._ensure_llm_loop()
+        prev_engine = None
+        prev_path = ""
+        with self._llm_lock:
+            if self.llm is not None and self.llm_model_path == str(model_path):
+                return
+            prev_engine = self.llm
+            prev_path = self.llm_model_path
+            fut = asyncio.run_coroutine_threadsafe(
+                self._build_llm_engine(str(model_path)),
+                self._llm_loop,
+            )
+            try:
+                engine = fut.result()
+            except Exception:
+                self.llm = prev_engine
+                self.llm_model_path = prev_path
+                raise
+            self.llm = engine
+            self.llm_model_path = str(model_path)
+        if prev_engine is not None:
+            self._shutdown_llm_engine(prev_engine)
+
+    def _shutdown_llm_engine(self, engine: AsyncLLMEngine) -> None:
+        if self._llm_loop is None:
+            return
+
+        async def _shutdown() -> None:
+            for name in ("shutdown", "close"):
+                fn = getattr(engine, name, None)
+                if callable(fn):
+                    res = fn()
+                    if asyncio.iscoroutine(res):
+                        await res
+                    return
+
+        fut = asyncio.run_coroutine_threadsafe(_shutdown(), self._llm_loop)
+        try:
+            fut.result()
+        except Exception:
+            self.log.exception("Failed to shutdown previous LLM engine")
+
+    def _ensure_llm_engine(self) -> None:
+        if self.llm is not None:
+            return
+        model_path = self.llm_model_path or LLM_DEFAULT_MODEL
+        if not model_path:
+            raise RuntimeError("LLM model not set. Call SetLlmModel first.")
+        resolved = self._resolve_llm_model_path(model_path)
+        self._load_llm_engine(resolved)
+
+    async def _build_llm_engine(self, model_path: str) -> AsyncLLMEngine:
+        args = EngineArgs(
+            model=model_path,
+            dtype=LLM_DTYPE,
+            max_model_len=LLM_MAX_MODEL_LEN,
+            gpu_memory_utilization=LLM_GPU_MEM_UTIL,
+            max_num_seqs=LLM_MAX_NUM_SEQS,
+            max_num_batched_tokens=LLM_MAX_BATCHED_TOKENS,
+            tensor_parallel_size=LLM_TP_SIZE,
+            enable_prefix_caching=True,
+        )
+        return await AsyncLLMEngine.from_engine_args(args)
+
+    def _default_sampling_params(self) -> SamplingParams:
+        return SamplingParams(
+            max_tokens=LLM_MAX_TOKENS,
+            temperature=LLM_TEMPERATURE,
+            top_p=LLM_TOP_P,
+        )
+
+    def _context_cancelled(self, context: grpc.ServicerContext) -> bool:
+        try:
+            return not context.is_active()
+        except Exception:
+            return False
+
+    def _should_flush(self, buf: StreamBuffer) -> bool:
+        if not buf.has_data():
+            return False
+        if LLM_FLUSH_MAX_CHARS > 0 and buf.char_count >= LLM_FLUSH_MAX_CHARS:
+            return True
+        if LLM_FLUSH_EVERY_MS > 0:
+            elapsed_ms = (time.monotonic() - buf.last_flush_monotonic) * 1000.0
+            if elapsed_ms >= LLM_FLUSH_EVERY_MS:
+                return True
+        return False
+
+    def _delta_from_output(self, full_text: str, prev_text: str) -> Tuple[str, str]:
+        if not full_text or len(full_text) <= len(prev_text):
+            return "", prev_text
+        delta = full_text[len(prev_text):]
+        return delta, full_text
+
+    async def _safe_abort(self, request_id: str) -> None:
+        engine = self.llm
+        if engine is None:
+            return
+        try:
+            await engine.abort(request_id)
+        except Exception:
+            pass
+
+    async def _stream_llm_text(
+        self,
+        request_id: str,
+        prompt: str,
+        sampling: SamplingParams,
+        context: grpc.ServicerContext,
+    ) -> AsyncIterator[str]:
+        buf = StreamBuffer.new()
+        prev_text = ""
+
+        try:
+            async for out in self.llm.generate(prompt, sampling, request_id=request_id):
+                if self._context_cancelled(context):
+                    if buf.has_data():
+                        yield buf.take_all()
+                    return
+
+                if not getattr(out, "outputs", None):
+                    continue
+
+                full_text = out.outputs[0].text or ""
+                delta, prev_text = self._delta_from_output(full_text, prev_text)
+                if not delta:
+                    continue
+
+                buf.add(delta)
+
+                if self._should_flush(buf):
+                    yield buf.take_all()
+
+            if buf.has_data():
+                yield buf.take_all()
+        finally:
+            await self._safe_abort(request_id)
+
+    def _iter_async_generator(self, agen: AsyncIterator[str]):
+        while True:
+            try:
+                fut = asyncio.run_coroutine_threadsafe(agen.__anext__(), self._llm_loop)
+                yield fut.result()
+            except StopAsyncIteration:
+                return
+
+    def _normalize_llm_request(self, request: ConversationRequest) -> Tuple[str, str]:
+        request_id = str(uuid.uuid4())
+        prompt = getattr(request, "prompt", None)
+        if not prompt:
+            prompt = getattr(request, "message", None)
+        if isinstance(prompt, bytes):
+            prompt = prompt.decode("utf-8", errors="ignore")
+        if not prompt:
+            prompt = request.username or ""
+        return request_id, prompt
+
+    def Conversation(self, request: ConversationRequest, context: grpc.ServicerContext):
+        try:
+            self._ensure_llm_engine()
+        except (RuntimeError, ValueError, FileNotFoundError) as exc:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(exc))
+        except Exception:
+            self.log.exception("Failed to initialize LLM engine")
+            context.abort(grpc.StatusCode.INTERNAL, "Failed to initialize LLM engine.")
+        request_id, prompt = self._normalize_llm_request(request)
+        if not prompt:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Prompt is required.")
+
+        sampling = self._default_sampling_params()
+        self.log.info("Conversation request received", extra={"username": request.username, "request_id": request_id})
+
+        try:
+            for delta_text in self._iter_async_generator(
+                self._stream_llm_text(request_id, prompt, sampling, context)
+            ):
+                if not delta_text:
+                    continue
+                yield ConversationResponse(
+                    username=request.username,
+                    message=delta_text.encode("utf-8"),
+                )
+        except Exception:
+            self.log.exception("Conversation stream failed")
+            context.abort(grpc.StatusCode.INTERNAL, "Conversation stream failed.")

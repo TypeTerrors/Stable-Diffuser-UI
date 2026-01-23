@@ -59,6 +59,11 @@ class ImageServiceStub(object):
                 request_serializer=img__service__pb2.ClearModelRequest.SerializeToString,
                 response_deserializer=img__service__pb2.ClearModelResponse.FromString,
                 _registered_method=True)
+        self.SetLlmModel = channel.unary_unary(
+                '/generator.ImageService/SetLlmModel',
+                request_serializer=img__service__pb2.SetLlmModelRequest.SerializeToString,
+                response_deserializer=img__service__pb2.SetLlmModelResponse.FromString,
+                _registered_method=True)
         self.ListLoras = channel.unary_unary(
                 '/generator.ImageService/ListLoras',
                 request_serializer=img__service__pb2.ListLorasRequest.SerializeToString,
@@ -78,6 +83,11 @@ class ImageServiceStub(object):
                 '/generator.ImageService/ClearLoras',
                 request_serializer=img__service__pb2.ClearLorasRequest.SerializeToString,
                 response_deserializer=img__service__pb2.ClearLorasResponse.FromString,
+                _registered_method=True)
+        self.Conversation = channel.unary_stream(
+                '/generator.ImageService/Conversation',
+                request_serializer=img__service__pb2.ConversationRequest.SerializeToString,
+                response_deserializer=img__service__pb2.ConversationResponse.FromString,
                 _registered_method=True)
 
 
@@ -114,6 +124,12 @@ class ImageServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SetLlmModel(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ListLoras(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -133,6 +149,12 @@ class ImageServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ClearLoras(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Conversation(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -166,6 +188,11 @@ def add_ImageServiceServicer_to_server(servicer, server):
                     request_deserializer=img__service__pb2.ClearModelRequest.FromString,
                     response_serializer=img__service__pb2.ClearModelResponse.SerializeToString,
             ),
+            'SetLlmModel': grpc.unary_unary_rpc_method_handler(
+                    servicer.SetLlmModel,
+                    request_deserializer=img__service__pb2.SetLlmModelRequest.FromString,
+                    response_serializer=img__service__pb2.SetLlmModelResponse.SerializeToString,
+            ),
             'ListLoras': grpc.unary_unary_rpc_method_handler(
                     servicer.ListLoras,
                     request_deserializer=img__service__pb2.ListLorasRequest.FromString,
@@ -185,6 +212,11 @@ def add_ImageServiceServicer_to_server(servicer, server):
                     servicer.ClearLoras,
                     request_deserializer=img__service__pb2.ClearLorasRequest.FromString,
                     response_serializer=img__service__pb2.ClearLorasResponse.SerializeToString,
+            ),
+            'Conversation': grpc.unary_stream_rpc_method_handler(
+                    servicer.Conversation,
+                    request_deserializer=img__service__pb2.ConversationRequest.FromString,
+                    response_serializer=img__service__pb2.ConversationResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -333,6 +365,33 @@ class ImageService(object):
             _registered_method=True)
 
     @staticmethod
+    def SetLlmModel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/generator.ImageService/SetLlmModel',
+            img__service__pb2.SetLlmModelRequest.SerializeToString,
+            img__service__pb2.SetLlmModelResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def ListLoras(request,
             target,
             options=(),
@@ -430,6 +489,33 @@ class ImageService(object):
             '/generator.ImageService/ClearLoras',
             img__service__pb2.ClearLorasRequest.SerializeToString,
             img__service__pb2.ClearLorasResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Conversation(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/generator.ImageService/Conversation',
+            img__service__pb2.ConversationRequest.SerializeToString,
+            img__service__pb2.ConversationResponse.FromString,
             options,
             channel_credentials,
             insecure,

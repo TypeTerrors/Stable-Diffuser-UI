@@ -38,6 +38,7 @@ func NewApp(config config.Config) (*App, error) {
 
 	rpc, err := dependencies.NewRpc(config.Rpc.Peer, config.Rpc.Port, cm)
 	if err != nil {
+		cancel()
 		return nil, fmt.Errorf("error creating newapp: %w", err)
 	}
 

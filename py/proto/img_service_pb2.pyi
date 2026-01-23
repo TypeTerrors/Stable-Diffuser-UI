@@ -32,7 +32,8 @@ class GenerateImageRequest(google.protobuf.message.Message):
         positive_prompt: builtins.str = ...,
         negative_prompt: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___GenerateImageRequest: typing_extensions.TypeAlias = GenerateImageRequest
 
@@ -53,7 +54,8 @@ class GenerateImageResponse(google.protobuf.message.Message):
         mime_type: builtins.str = ...,
         filename_hint: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filename_hint", b"filename_hint", "image", b"image", "mime_type", b"mime_type"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["filename_hint", b"filename_hint", "image", b"image", "mime_type", b"mime_type"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___GenerateImageResponse: typing_extensions.TypeAlias = GenerateImageResponse
 
@@ -81,7 +83,8 @@ class ListModelResponse(google.protobuf.message.Message):
         *,
         model_paths: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["model_paths", b"model_paths"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_paths", b"model_paths"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___ListModelResponse: typing_extensions.TypeAlias = ListModelResponse
 
@@ -98,7 +101,8 @@ class SetModelRequest(google.protobuf.message.Message):
         *,
         model_path: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["model_path", b"model_path"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___SetModelRequest: typing_extensions.TypeAlias = SetModelRequest
 
@@ -113,7 +117,8 @@ class SetModelResponse(google.protobuf.message.Message):
         *,
         model_path: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["model_path", b"model_path"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___SetModelResponse: typing_extensions.TypeAlias = SetModelResponse
 
@@ -138,7 +143,8 @@ class GetCurrentModelResponse(google.protobuf.message.Message):
         *,
         model_path: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["model_path", b"model_path"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___GetCurrentModelResponse: typing_extensions.TypeAlias = GetCurrentModelResponse
 
@@ -167,9 +173,44 @@ class ClearModelResponse(google.protobuf.message.Message):
         model_path: builtins.str = ...,
         loras: collections.abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["loras", b"loras", "model_path", b"model_path"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras", "model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___ClearModelResponse: typing_extensions.TypeAlias = ClearModelResponse
+
+@typing.final
+class SetLlmModelRequest(google.protobuf.message.Message):
+    """Set LLM Model"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MODEL_PATH_FIELD_NUMBER: builtins.int
+    model_path: builtins.str
+    def __init__(
+        self,
+        *,
+        model_path: builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___SetLlmModelRequest: typing_extensions.TypeAlias = SetLlmModelRequest
+
+@typing.final
+class SetLlmModelResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MODEL_PATH_FIELD_NUMBER: builtins.int
+    model_path: builtins.str
+    def __init__(
+        self,
+        *,
+        model_path: builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___SetLlmModelResponse: typing_extensions.TypeAlias = SetLlmModelResponse
 
 @typing.final
 class GetCurrentLorasRequest(google.protobuf.message.Message):
@@ -193,7 +234,8 @@ class GetCurrentLorasResponse(google.protobuf.message.Message):
         *,
         loras: collections.abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["loras", b"loras"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___GetCurrentLorasResponse: typing_extensions.TypeAlias = GetCurrentLorasResponse
 
@@ -219,7 +261,8 @@ class ClearLorasResponse(google.protobuf.message.Message):
         *,
         loras: collections.abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["loras", b"loras"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___ClearLorasResponse: typing_extensions.TypeAlias = ClearLorasResponse
 
@@ -247,7 +290,8 @@ class ListLorasResponse(google.protobuf.message.Message):
         *,
         lora_path: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["lora_path", b"lora_path"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["lora_path", b"lora_path"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___ListLorasResponse: typing_extensions.TypeAlias = ListLorasResponse
 
@@ -267,7 +311,8 @@ class SetLora(google.protobuf.message.Message):
         weight: builtins.float = ...,
         path: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["path", b"path", "weight", b"weight"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["path", b"path", "weight", b"weight"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___SetLora: typing_extensions.TypeAlias = SetLora
 
@@ -283,7 +328,8 @@ class SetLoraRequest(google.protobuf.message.Message):
         *,
         loras: collections.abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["loras", b"loras"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___SetLoraRequest: typing_extensions.TypeAlias = SetLoraRequest
 
@@ -299,6 +345,47 @@ class SetLoraResponse(google.protobuf.message.Message):
         *,
         loras: collections.abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["loras", b"loras"]) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___SetLoraResponse: typing_extensions.TypeAlias = SetLoraResponse
+
+@typing.final
+class ConversationRequest(google.protobuf.message.Message):
+    """rpc Conversation (ConversationRequest) returns stream (ConversationResponse);"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    USERNAME_FIELD_NUMBER: builtins.int
+    PROMPT_FIELD_NUMBER: builtins.int
+    username: builtins.str
+    prompt: builtins.str
+    def __init__(
+        self,
+        *,
+        username: builtins.str = ...,
+        prompt: builtins.str = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["prompt", b"prompt", "username", b"username"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ConversationRequest: typing_extensions.TypeAlias = ConversationRequest
+
+@typing.final
+class ConversationResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    USERNAME_FIELD_NUMBER: builtins.int
+    MESSAGE_FIELD_NUMBER: builtins.int
+    username: builtins.str
+    message: builtins.bytes
+    def __init__(
+        self,
+        *,
+        username: builtins.str = ...,
+        message: builtins.bytes = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["message", b"message", "username", b"username"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ConversationResponse: typing_extensions.TypeAlias = ConversationResponse

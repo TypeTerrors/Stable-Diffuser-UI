@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package generator;
 option go_package = "proto/";
-
 service ImageService {
     rpc GenerateImage (GenerateImageRequest) returns (GenerateImageResponse);
     
@@ -10,11 +9,15 @@ service ImageService {
     rpc SetModel (SetModelRequest) returns (SetModelResponse);
     rpc GetCurrentModel (GetCurrentModelRequest) returns (GetCurrentModelResponse);
     rpc ClearModel (ClearModelRequest) returns (ClearModelResponse);
+
+    rpc SetLlmModel (SetLlmModelRequest) returns (SetLlmModelResponse);
     
     rpc ListLoras (ListLorasRequest) returns (ListLorasResponse);
     rpc SetLora (SetLoraRequest) returns (SetLoraResponse);
     rpc GetCurrentLoras (GetCurrentLorasRequest) returns (GetCurrentLorasResponse);
     rpc ClearLoras (ClearLorasRequest) returns (ClearLorasResponse);
+
+    rpc Conversation (ConversationRequest) returns (stream ConversationResponse);
 }
 
 message GenerateImageRequest {
@@ -57,6 +60,15 @@ message ClearModelResponse {
     repeated SetLora loras = 2;
 }
 
+// Set LLM Model
+message SetLlmModelRequest {
+    string model_path = 1;
+}
+
+message SetLlmModelResponse {
+    string model_path = 1;
+}
+
 message GetCurrentLorasRequest {}
 
 message GetCurrentLorasResponse {
@@ -88,4 +100,15 @@ message SetLoraRequest {
 
 message SetLoraResponse {
     repeated SetLora loras = 1;
+}
+
+// rpc Conversation (ConversationRequest) returns stream (ConversationResponse);
+message ConversationRequest {
+    string username = 1;
+    string prompt = 2;
+}
+
+message ConversationResponse {
+    string username = 1;
+    bytes message = 2;
 }

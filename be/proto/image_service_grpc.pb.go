@@ -24,6 +24,7 @@ const (
 	ImageService_SetModel_FullMethodName        = "/generator.ImageService/SetModel"
 	ImageService_GetCurrentModel_FullMethodName = "/generator.ImageService/GetCurrentModel"
 	ImageService_ClearModel_FullMethodName      = "/generator.ImageService/ClearModel"
+	ImageService_SetLlmModel_FullMethodName     = "/generator.ImageService/SetLlmModel"
 	ImageService_ListLoras_FullMethodName       = "/generator.ImageService/ListLoras"
 	ImageService_SetLora_FullMethodName         = "/generator.ImageService/SetLora"
 	ImageService_GetCurrentLoras_FullMethodName = "/generator.ImageService/GetCurrentLoras"
@@ -40,6 +41,7 @@ type ImageServiceClient interface {
 	SetModel(ctx context.Context, in *SetModelRequest, opts ...grpc.CallOption) (*SetModelResponse, error)
 	GetCurrentModel(ctx context.Context, in *GetCurrentModelRequest, opts ...grpc.CallOption) (*GetCurrentModelResponse, error)
 	ClearModel(ctx context.Context, in *ClearModelRequest, opts ...grpc.CallOption) (*ClearModelResponse, error)
+	SetLlmModel(ctx context.Context, in *SetLlmModelRequest, opts ...grpc.CallOption) (*SetLlmModelResponse, error)
 	ListLoras(ctx context.Context, in *ListLorasRequest, opts ...grpc.CallOption) (*ListLorasResponse, error)
 	SetLora(ctx context.Context, in *SetLoraRequest, opts ...grpc.CallOption) (*SetLoraResponse, error)
 	GetCurrentLoras(ctx context.Context, in *GetCurrentLorasRequest, opts ...grpc.CallOption) (*GetCurrentLorasResponse, error)
@@ -99,6 +101,16 @@ func (c *imageServiceClient) ClearModel(ctx context.Context, in *ClearModelReque
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ClearModelResponse)
 	err := c.cc.Invoke(ctx, ImageService_ClearModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *imageServiceClient) SetLlmModel(ctx context.Context, in *SetLlmModelRequest, opts ...grpc.CallOption) (*SetLlmModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetLlmModelResponse)
+	err := c.cc.Invoke(ctx, ImageService_SetLlmModel_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +185,7 @@ type ImageServiceServer interface {
 	SetModel(context.Context, *SetModelRequest) (*SetModelResponse, error)
 	GetCurrentModel(context.Context, *GetCurrentModelRequest) (*GetCurrentModelResponse, error)
 	ClearModel(context.Context, *ClearModelRequest) (*ClearModelResponse, error)
+	SetLlmModel(context.Context, *SetLlmModelRequest) (*SetLlmModelResponse, error)
 	ListLoras(context.Context, *ListLorasRequest) (*ListLorasResponse, error)
 	SetLora(context.Context, *SetLoraRequest) (*SetLoraResponse, error)
 	GetCurrentLoras(context.Context, *GetCurrentLorasRequest) (*GetCurrentLorasResponse, error)
@@ -202,6 +215,9 @@ func (UnimplementedImageServiceServer) GetCurrentModel(context.Context, *GetCurr
 }
 func (UnimplementedImageServiceServer) ClearModel(context.Context, *ClearModelRequest) (*ClearModelResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClearModel not implemented")
+}
+func (UnimplementedImageServiceServer) SetLlmModel(context.Context, *SetLlmModelRequest) (*SetLlmModelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetLlmModel not implemented")
 }
 func (UnimplementedImageServiceServer) ListLoras(context.Context, *ListLorasRequest) (*ListLorasResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLoras not implemented")
@@ -329,6 +345,24 @@ func _ImageService_ClearModel_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ImageService_SetLlmModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetLlmModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ImageServiceServer).SetLlmModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ImageService_SetLlmModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ImageServiceServer).SetLlmModel(ctx, req.(*SetLlmModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ImageService_ListLoras_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListLorasRequest)
 	if err := dec(in); err != nil {
@@ -438,6 +472,10 @@ var ImageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ClearModel",
 			Handler:    _ImageService_ClearModel_Handler,
+		},
+		{
+			MethodName: "SetLlmModel",
+			Handler:    _ImageService_SetLlmModel_Handler,
 		},
 		{
 			MethodName: "ListLoras",
