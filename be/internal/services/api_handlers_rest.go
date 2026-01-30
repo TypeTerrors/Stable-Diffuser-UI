@@ -178,6 +178,45 @@ func (a *Api) SetModel() fiber.Handler {
 		})
 	}
 }
+
+func (a *Api) SetLlmModel() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		logger := HttpLogger("SetLlmModel", ctx)
+
+		var requestBody types.SetModelRequest
+		if err := ctx.BodyParser(&requestBody); err != nil {
+			logger.Error("invalid body", "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid body",
+			})
+		}
+
+		modelPath := strings.TrimSpace(requestBody.ModelPath)
+		if modelPath == "" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   "modelPath is required",
+				Message: "invalid body",
+			})
+		}
+
+		logger.Info("set llm model requested", "modelPath", modelPath)
+		resp, err := a.rpc.SetLlmModel(modelPath)
+		if err != nil {
+			logger.Error("set llm model failed", "modelPath", modelPath, "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to set llm model",
+			})
+		}
+
+		logger.Info("set llm model completed", "modelPath", resp.ModelPath)
+		ctx.Status(fiber.StatusOK)
+		return ctx.JSON(types.SetModelResponse{
+			ModelPath: resp.ModelPath,
+		})
+	}
+}
 func (a *Api) SetLoras() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		logger := HttpLogger("SetLoras", ctx)

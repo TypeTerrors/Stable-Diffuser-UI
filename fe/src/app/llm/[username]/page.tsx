@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { AlertCircle, Loader2, RefreshCw, Send, Square } from "lucide-react";
+import { AlertCircle, Check, ChevronsUpDown, Loader2, RefreshCw, Send, Square } from "lucide-react";
 
 type ChatMessage = {
   id: string;
@@ -32,6 +34,16 @@ type ConnectionState = "idle" | "connecting" | "connected" | "disconnected" | "e
 
 const MAX_RECONNECT_DELAY_MS = 10000;
 
+type ModelsResponse = { modelPaths: string[] };
+type SetLlmModelResponse = { modelPath: string };
+
+type CatalogItem = {
+  fullPath: string;
+  group: string;
+  name: string;
+  subpath: string;
+};
+
 function decodeBase64Text(value: string): string {
   if (!value) return "";
   try {
@@ -44,6 +56,31 @@ function decodeBase64Text(value: string): string {
   } catch {
     return value;
   }
+}
+
+function buildCatalog(paths: string[], marker: "models"): CatalogItem[] {
+  return paths
+    .filter(Boolean)
+    .map((fullPath) => {
+      const normalized = fullPath.replaceAll("\\", "/");
+      const token = `/${marker}/`;
+      const rel = normalized.includes(token) ? normalized.split(token)[1] : normalized.split("/").slice(-2).join("/");
+      const parts = rel.split("/").filter(Boolean);
+      const group = parts[0] ?? "root";
+      const name = parts[parts.length - 1] ?? rel;
+      const subpath = parts.slice(1, -1).join("/");
+      return { fullPath, group, name, subpath };
+    })
+    .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
+}
+
+async function fetchJson<T>(url: URL, init?: RequestInit): Promise<T> {
+  const resp = await fetch(url.toString(), init);
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw new Error(text || `HTTP ${resp.status}`);
+  }
+  return (await resp.json()) as T;
 }
 
 export default function LlmPage() {
@@ -73,6 +110,14 @@ export default function LlmPage() {
   }, [baseUrl]);
   const conversationUrl = useMemo(() => new URL("conversation", baseUrl), [baseUrl]);
   const stopUrl = useMemo(() => new URL("conversation/stop", baseUrl), [baseUrl]);
+  const modelsUrl = useMemo(() => new URL("models", baseUrl), [baseUrl]);
+  const setLlmModelUrl = useMemo(() => new URL("setllmmodel", baseUrl), [baseUrl]);
+
+  const [availableModelPaths, setAvailableModelPaths] = useState<string[]>([]);
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [llmModelBusy, setLlmModelBusy] = useState(false);
+  const [llmModelError, setLlmModelError] = useState("");
+  const [currentLlmModelPath, setCurrentLlmModelPath] = useState("");
 
   const params = useParams();
   const rawUsername = params?.username;
@@ -88,7 +133,63 @@ export default function LlmPage() {
     window.sessionStorage.setItem("tt.username", username);
   }, [username]);
 
-  const scheduleReconnect = (opts?: { immediate?: boolean }) => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const existing = window.sessionStorage.getItem("tt.llmModelPath") ?? "";
+    if (existing) setCurrentLlmModelPath(existing);
+  }, []);
+
+  const modelCatalog = useMemo(() => buildCatalog(availableModelPaths, "models"), [availableModelPaths]);
+  const modelGroups = useMemo(() => {
+    const map = new Map<string, CatalogItem[]>();
+    for (const item of modelCatalog) {
+      map.set(item.group, [...(map.get(item.group) ?? []), item]);
+    }
+    return map;
+  }, [modelCatalog]);
+  const currentLlmModelLabel = useMemo(() => {
+    if (!currentLlmModelPath) return "";
+    const normalized = currentLlmModelPath.replaceAll("\\", "/");
+    return normalized.split("/").slice(-1)[0] ?? currentLlmModelPath;
+  }, [currentLlmModelPath]);
+
+  const refreshModels = useCallback(async () => {
+    setLlmModelError("");
+    try {
+      const resp = await fetchJson<ModelsResponse>(modelsUrl);
+      setAvailableModelPaths(resp.modelPaths ?? []);
+    } catch (err) {
+      setLlmModelError(err instanceof Error ? err.message : "Failed to load models.");
+    }
+  }, [modelsUrl]);
+
+  const applyLlmModel = useCallback(
+    async (modelPath: string) => {
+    if (!modelPath || llmModelBusy) return;
+    setLlmModelBusy(true);
+    setLlmModelError("");
+    try {
+      const resp = await fetchJson<SetLlmModelResponse>(setLlmModelUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modelPath }),
+      });
+      setCurrentLlmModelPath(resp.modelPath ?? modelPath);
+      if (typeof window !== "undefined") window.sessionStorage.setItem("tt.llmModelPath", resp.modelPath ?? modelPath);
+    } catch (err) {
+      setLlmModelError(err instanceof Error ? err.message : "Failed to set LLM model.");
+    } finally {
+      setLlmModelBusy(false);
+    }
+    },
+    [llmModelBusy, setLlmModelBusy, setLlmModelError, setLlmModelUrl]
+  );
+
+  useEffect(() => {
+    void refreshModels();
+  }, [refreshModels]);
+
+  const scheduleReconnect = useCallback((opts?: { immediate?: boolean }) => {
     if (!username || !allowReconnectRef.current) return;
     if (reconnectTimerRef.current) return;
     const attempt = reconnectAttemptsRef.current + 1;
@@ -101,7 +202,7 @@ export default function LlmPage() {
       reconnectTimerRef.current = null;
       setReconnectToken((prev) => prev + 1);
     }, delay);
-  };
+  }, [username]);
 
   useEffect(() => {
     if (!username) return;
@@ -179,7 +280,7 @@ export default function LlmPage() {
       wsRef.current = null;
       ws.close();
     };
-  }, [username, wsBase, reconnectToken]);
+  }, [username, wsBase, reconnectToken, scheduleReconnect]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -357,6 +458,56 @@ export default function LlmPage() {
                 Streaming
               </Badge>
             ) : null}
+            <Popover open={modelPickerOpen} onOpenChange={setModelPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  role="combobox"
+                  aria-expanded={modelPickerOpen}
+                  disabled={llmModelBusy || availableModelPaths.length === 0}
+                  className="gap-2"
+                  title={currentLlmModelPath || ""}
+                >
+                  {currentLlmModelPath ? `LLM: ${currentLlmModelLabel}` : "Select LLM model..."}
+                  {llmModelBusy ? <Loader2 className="size-4 animate-spin" /> : <ChevronsUpDown className="opacity-50" />}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[320px] p-0">
+                <Command>
+                  <CommandInput placeholder="Search models..." />
+                  <CommandEmpty>No models found.</CommandEmpty>
+                  <CommandList>
+                    {[...modelGroups.entries()].map(([group, items]) => (
+                      <CommandGroup key={group} heading={group}>
+                        {items.map((item) => (
+                          <CommandItem
+                            key={item.fullPath}
+                            value={[group, item.subpath, item.name].filter(Boolean).join("/")}
+                            onSelect={() => {
+                              setModelPickerOpen(false);
+                              void applyLlmModel(item.fullPath);
+                            }}
+                          >
+                            <Check
+                              className={
+                                currentLlmModelPath === item.fullPath ? "mr-2 size-4 opacity-100" : "mr-2 size-4 opacity-0"
+                              }
+                            />
+                            <span className="truncate">{item.name}</span>
+                            {currentLlmModelPath === item.fullPath ? (
+                              <Badge variant="secondary" className="ml-auto">
+                                Applied
+                              </Badge>
+                            ) : null}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ))}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <Button variant="outline" size="sm" onClick={handleReconnect} className="gap-2">
               <RefreshCw className={cn("size-4", reconnecting ? "animate-spin" : "")} />
               {reconnecting ? "Reconnecting" : "Reconnect"}
@@ -376,6 +527,14 @@ export default function LlmPage() {
             <AlertCircle className="size-4" />
             <AlertTitle>Connection issue</AlertTitle>
             <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {llmModelError ? (
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Model selection issue</AlertTitle>
+            <AlertDescription>{llmModelError}</AlertDescription>
           </Alert>
         ) : null}
 
