@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,9 +46,7 @@ function decodeBase64Text(value: string): string {
   }
 }
 
-type PageProps = { params: { username: string } };
-
-export default function LlmPage({ params }: PageProps) {
+export default function LlmPage() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connection, setConnection] = useState<ConnectionState>("idle");
@@ -75,7 +74,14 @@ export default function LlmPage({ params }: PageProps) {
   const conversationUrl = useMemo(() => new URL("conversation", baseUrl), [baseUrl]);
   const stopUrl = useMemo(() => new URL("conversation/stop", baseUrl), [baseUrl]);
 
-  const username = params.username?.trim() ?? "";
+  const params = useParams();
+  const rawUsername = params?.username;
+  const username =
+    typeof rawUsername === "string"
+      ? rawUsername.trim()
+      : Array.isArray(rawUsername)
+        ? rawUsername[0]?.trim() ?? ""
+        : "";
 
   useEffect(() => {
     if (typeof window === "undefined" || !username) return;
