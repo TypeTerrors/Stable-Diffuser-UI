@@ -102,6 +102,19 @@ func (w *ConversationManager) ClearStreamCancel(username string) {
 	delete(w.cancels, username)
 }
 
+func (w *ConversationManager) CancelStream(username string) bool {
+	w.mx.Lock()
+	defer w.mx.Unlock()
+
+	if cancel, ok := w.cancels[username]; ok && cancel != nil {
+		cancel()
+		delete(w.cancels, username)
+		return true
+	}
+
+	return false
+}
+
 func (w *ConversationManager) RegisterClient(username string, conn *websocket.Conn) error {
 	w.mx.Lock()
 	defer w.mx.Unlock()

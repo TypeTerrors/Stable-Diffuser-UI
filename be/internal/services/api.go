@@ -91,6 +91,7 @@ func (a *Api) addRoutes() {
 	a.server.Add("POST", "/clearloras", a.ClearLoras())
 	a.server.Add("POST", "/download", a.DownloadModel())
 	a.server.Add("POST", "/conversation", a.Conversation())
+	a.server.Add("POST", "/conversation/stop", a.ConversationStop())
 
 	// websocket connection
 	a.server.Use("/ws", a.WsUpgrade())

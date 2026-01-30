@@ -58,7 +58,16 @@ type DownloadResponse struct {
 
 type ConversationRequest struct {
 	Username string `json:"username"`
+	Prompt   string `json:"prompt"`
 }
 type ConversationEstablishedResponse struct {
+	Status int `json:"status"`
+}
+
+type ConversationStopRequest struct {
+	Username string `json:"username"`
+}
+
+type ConversationStopResponse struct {
 	Status int `json:"status"`
 }

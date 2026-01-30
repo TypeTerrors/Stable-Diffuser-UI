@@ -447,12 +447,46 @@ func (a *Api) Conversation() fiber.Handler {
 
 			if err := a.rpc.Conversation(streamCtx, &proto.ConversationRequest{
 				Username: requestBody.Username,
+				Prompt:   requestBody.Prompt,
 			}); err != nil {
 				log.Error("rpc conversation failed", "username", requestBody.Username, "err", err)
 			}
 		}()
 
 		return ctx.Status(fiber.StatusAccepted).JSON(types.ConversationEstablishedResponse{
+			Status: fiber.StatusOK,
+		})
+	}
+}
+
+func (a *Api) ConversationStop() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		logger := HttpLogger("ConversationStop", ctx)
+
+		var requestBody types.ConversationStopRequest
+		if err := ctx.BodyParser(&requestBody); err != nil {
+			logger.Error("invalid body", "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid body",
+			})
+		}
+
+		if requestBody.Username == "" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   "username is required",
+				Message: "invalid body",
+			})
+		}
+
+		if ok := a.ConversationManager.CancelStream(requestBody.Username); !ok {
+			return ctx.Status(fiber.StatusNotFound).JSON(types.ErrorResponse{
+				Error:   "no active conversation stream",
+				Message: "stream not found",
+			})
+		}
+
+		return ctx.Status(fiber.StatusOK).JSON(types.ConversationStopResponse{
 			Status: fiber.StatusOK,
 		})
 	}
