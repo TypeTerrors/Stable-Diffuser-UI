@@ -1,0 +1,16 @@
+diffusers
+grpcio>=1.76.0
+grpcio-tools>=1.76.0
+mypy-protobuf
+peft
+transformers
+
+# Dependencies required by ltx-core/ltx-pipelines (installed separately with --no-deps)
+accelerate
+av
+einops
+numpy
+pillow
+safetensors
+scipy>=1.14
+tqdm

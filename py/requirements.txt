@@ -5,3 +5,4 @@ msgspec
 mypy-protobuf
 peft
 nvidia-ml-py
+pybase64

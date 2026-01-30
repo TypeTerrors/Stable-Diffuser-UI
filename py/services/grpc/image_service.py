@@ -13,8 +13,6 @@ from typing import AsyncIterator, Tuple
 import grpc
 import torch
 from diffusers import StableDiffusionXLPipeline
-from vllm.engine.async_llm_engine import AsyncLLMEngine
-from vllm.sampling_params import SamplingParams
 from proto.img_service_pb2 import (
     ClearModelRequest,
     ClearModelResponse,
@@ -38,11 +36,26 @@ from proto.img_service_pb2 import (
 )
 from proto.img_service_pb2_grpc import ImageServiceServicer
 
-# vLLM arg utils import path varies by version; handle both common cases.
+# vLLM is optional and may be incompatible with the container CUDA runtime.
+#
+# Example failure: prebuilt vLLM wheels commonly target CUDA 12 and will fail to
+# import in CUDA 13 containers with `ImportError: libcudart.so.12: cannot open
+# shared object file`.
+_VLLM_IMPORT_ERROR: str | None = None
 try:
-    from vllm.engine.arg_utils import AsyncEngineArgs as EngineArgs
-except Exception:
-    from vllm.engine.arg_utils import EngineArgs  # type: ignore
+    from vllm.engine.async_llm_engine import AsyncLLMEngine  # type: ignore
+    from vllm.sampling_params import SamplingParams  # type: ignore
+
+    # vLLM arg utils import path varies by version; handle both common cases.
+    try:
+        from vllm.engine.arg_utils import AsyncEngineArgs as EngineArgs  # type: ignore
+    except Exception:
+        from vllm.engine.arg_utils import EngineArgs  # type: ignore
+except Exception as exc:  # pragma: no cover
+    AsyncLLMEngine = None  # type: ignore[assignment]
+    SamplingParams = None  # type: ignore[assignment]
+    EngineArgs = None  # type: ignore[assignment]
+    _VLLM_IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
 
 # ---- LLM Config ----
 _DEFAULT_LLM_DIR = Path(__file__).resolve().parents[2] / "models" / "llm"
@@ -389,6 +402,14 @@ class ImageService(ImageServiceServicer):
         )
 
     def SetLlmModel(self, request: SetLlmModelRequest, context):
+        if AsyncLLMEngine is None or EngineArgs is None or SamplingParams is None:
+            detail = _VLLM_IMPORT_ERROR or "vLLM is unavailable in this environment."
+            context.abort(
+                grpc.StatusCode.FAILED_PRECONDITION,
+                "LLM support is not available because vLLM could not be imported. "
+                f"({detail})",
+            )
+
         model_path = (request.model_path or "").strip()
         try:
             resolved = self._resolve_llm_model_path(model_path)
@@ -590,6 +611,9 @@ class ImageService(ImageServiceServicer):
         self._load_llm_engine(resolved)
 
     async def _build_llm_engine(self, model_path: str) -> AsyncLLMEngine:
+        if AsyncLLMEngine is None or EngineArgs is None:
+            detail = _VLLM_IMPORT_ERROR or "vLLM is unavailable in this environment."
+            raise RuntimeError(f"vLLM could not be imported. ({detail})")
         args = EngineArgs(
             model=model_path,
             dtype=LLM_DTYPE,
@@ -603,6 +627,9 @@ class ImageService(ImageServiceServicer):
         return await AsyncLLMEngine.from_engine_args(args)
 
     def _default_sampling_params(self) -> SamplingParams:
+        if SamplingParams is None:
+            detail = _VLLM_IMPORT_ERROR or "vLLM is unavailable in this environment."
+            raise RuntimeError(f"vLLM could not be imported. ({detail})")
         return SamplingParams(
             max_tokens=LLM_MAX_TOKENS,
             temperature=LLM_TEMPERATURE,
