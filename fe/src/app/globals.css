@@ -76,40 +76,80 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Catppuccin-inspired code theme (Latte). */
+  --tt-code-bg: #eff1f5;
+  --tt-code-border: #ccd0da;
+  --tt-hl-text: #4c4f69;
+  --tt-hl-comment: #9ca0b0;
+  --tt-hl-keyword: #8839ef;
+  --tt-hl-string: #40a02b;
+  --tt-hl-number: #fe640b;
+  --tt-hl-title: #1e66f5;
+  --tt-hl-type: #df8e1d;
+  --tt-hl-symbol: #179299;
+  --tt-hl-variable: #7287fd;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /*
+    Dark palette tuned to complement the Catppuccin-ish code theme:
+    - Deep, slightly indigo-leaning neutrals
+    - Soft foreground + calmer borders
+    - Lavender-ish primary that doesn't overpower code blocks
+  */
+  --background: oklch(0.17 0.02 270);
+  --foreground: oklch(0.93 0.02 275);
+  --card: oklch(0.22 0.02 270);
+  --card-foreground: oklch(0.93 0.02 275);
+  --popover: oklch(0.22 0.02 270);
+  --popover-foreground: oklch(0.93 0.02 275);
+
+  --primary: oklch(0.78 0.09 280);
+  --primary-foreground: oklch(0.18 0.02 270);
+
+  --secondary: oklch(0.26 0.02 270);
+  --secondary-foreground: oklch(0.93 0.02 275);
+
+  --muted: oklch(0.25 0.02 270);
+  --muted-foreground: oklch(0.74 0.03 275);
+
+  --accent: oklch(0.27 0.03 260);
+  --accent-foreground: oklch(0.93 0.02 275);
+
+  --destructive: oklch(0.67 0.19 25);
+  --border: oklch(0.32 0.02 270 / 55%);
+  --input: oklch(0.30 0.02 270 / 65%);
+  --ring: oklch(0.62 0.06 280);
+
+  /* Chart accents (used by a few UI tokens) */
+  --chart-1: oklch(0.74 0.10 280);
+  --chart-2: oklch(0.76 0.08 160);
+  --chart-3: oklch(0.78 0.10 70);
+  --chart-4: oklch(0.72 0.09 220);
+  --chart-5: oklch(0.74 0.10 25);
+
+  --sidebar: oklch(0.20 0.02 270);
+  --sidebar-foreground: oklch(0.93 0.02 275);
+  --sidebar-primary: oklch(0.78 0.09 280);
+  --sidebar-primary-foreground: oklch(0.18 0.02 270);
+  --sidebar-accent: oklch(0.26 0.02 270);
+  --sidebar-accent-foreground: oklch(0.93 0.02 275);
+  --sidebar-border: oklch(0.32 0.02 270 / 55%);
+  --sidebar-ring: oklch(0.62 0.06 280);
+
+  /* Catppuccin-inspired code theme (Mocha). */
+  --tt-code-bg: #181825;
+  --tt-code-border: #313244;
+  --tt-hl-text: #cdd6f4;
+  --tt-hl-comment: #6c7086;
+  --tt-hl-keyword: #cba6f7;
+  --tt-hl-string: #a6e3a1;
+  --tt-hl-number: #fab387;
+  --tt-hl-title: #89b4fa;
+  --tt-hl-type: #f9e2af;
+  --tt-hl-symbol: #94e2d5;
+  --tt-hl-variable: #b4befe;
 }
 
 @layer base {
@@ -118,5 +158,129 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .tt-markdown {
+    @apply space-y-3 leading-relaxed;
+  }
+
+  .tt-markdown h1 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+  .tt-markdown h2 {
+    @apply text-base font-semibold tracking-tight;
+  }
+  .tt-markdown h3 {
+    @apply text-sm font-semibold tracking-tight;
+  }
+
+  .tt-markdown p {
+    @apply whitespace-pre-wrap;
+  }
+
+  .tt-markdown ul {
+    @apply list-disc space-y-1 pl-5;
+  }
+  .tt-markdown ol {
+    @apply list-decimal space-y-1 pl-5;
+  }
+  .tt-markdown li > p {
+    @apply my-0;
+  }
+
+  .tt-markdown blockquote {
+    @apply border-l-2 border-border pl-4 text-muted-foreground;
+  }
+
+  .tt-markdown hr {
+    @apply border-border;
+  }
+
+  .tt-inline-code {
+    @apply rounded px-1 py-0.5 font-mono text-[0.85em];
+    background: var(--tt-code-bg);
+    color: var(--tt-hl-text);
+  }
+
+  .tt-codeblock {
+    @apply overflow-x-auto rounded-lg border p-3 font-mono text-xs leading-relaxed;
+    background: var(--tt-code-bg);
+    border-color: var(--tt-code-border);
+    color: var(--tt-hl-text);
+  }
+  .tt-codeblock-code {
+    @apply font-mono text-xs;
+  }
+
+  .tt-table-wrap {
+    @apply overflow-x-auto;
+  }
+  .tt-table {
+    @apply w-full border-collapse text-sm;
+  }
+  .tt-table th,
+  .tt-table td {
+    @apply border border-border px-2 py-1 align-top;
+  }
+  .tt-table th {
+    @apply bg-background/70 text-left font-medium;
+  }
+
+  /* Minimal syntax highlighting for rehype-highlight (highlight.js token classes). */
+  .tt-codeblock .hljs {
+    background: transparent;
+    color: var(--tt-hl-text);
+  }
+  .tt-codeblock .hljs-comment,
+  .tt-codeblock .hljs-quote {
+    color: var(--tt-hl-comment);
+    font-style: italic;
+  }
+  .tt-codeblock .hljs-keyword,
+  .tt-codeblock .hljs-selector-tag,
+  .tt-codeblock .hljs-name,
+  .tt-codeblock .hljs-subst {
+    color: var(--tt-hl-keyword);
+    font-weight: 600;
+  }
+  .tt-codeblock .hljs-string,
+  .tt-codeblock .hljs-doctag,
+  .tt-codeblock .hljs-title,
+  .tt-codeblock .hljs-section,
+  .tt-codeblock .hljs-function,
+  .tt-codeblock .hljs-title.function_,
+  .tt-codeblock .hljs-selector-id,
+  .tt-codeblock .hljs-selector-class {
+    color: var(--tt-hl-title);
+  }
+  .tt-codeblock .hljs-number,
+  .tt-codeblock .hljs-literal,
+  .tt-codeblock .hljs-regexp,
+  .tt-codeblock .hljs-built_in,
+  .tt-codeblock .hljs-attr,
+  .tt-codeblock .hljs-attribute {
+    color: var(--tt-hl-number);
+  }
+  .tt-codeblock .hljs-type,
+  .tt-codeblock .hljs-class,
+  .tt-codeblock .hljs-title.class_ {
+    color: var(--tt-hl-type);
+  }
+  .tt-codeblock .hljs-variable,
+  .tt-codeblock .hljs-template-variable,
+  .tt-codeblock .hljs-params,
+  .tt-codeblock .hljs-property,
+  .tt-codeblock .hljs-params {
+    color: var(--tt-hl-variable);
+  }
+  .tt-codeblock .hljs-symbol,
+  .tt-codeblock .hljs-bullet,
+  .tt-codeblock .hljs-link,
+  .tt-codeblock .hljs-meta,
+  .tt-codeblock .hljs-addition,
+  .tt-codeblock .hljs-deletion {
+    color: var(--tt-hl-symbol);
   }
 }

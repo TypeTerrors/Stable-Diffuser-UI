@@ -45,7 +45,10 @@ func (r *Rpc) SetLoras(loraPaths []*proto.SetLora) (*proto.SetLoraResponse, erro
 func (r *Rpc) SetLlmModel(llmPath string) (*proto.SetLlmModelResponse, error) {
 	start := time.Now()
 	r.logger.Info("rpc SetLlm")
-	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+	// LLMs can take several minutes to load on first use (large sharded checkpoints,
+	// quantization setup, CUDA graph warmup). Use a longer timeout than image model
+	// ops so the REST call can complete.
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cancel()
 
 	client := proto.NewImageServiceClient(r.conn)

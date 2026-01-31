@@ -479,7 +479,8 @@ func (a *Api) Conversation() fiber.Handler {
 		a.ConversationManager.mx.Unlock()
 
 		go func() {
-			streamCtx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
+			// LLM responses can take minutes depending on model load/throughput and max token settings.
+			streamCtx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 			a.ConversationManager.SetStreamCancel(requestBody.Username, cancel)
 			defer cancel()
 			defer a.ConversationManager.ClearStreamCancel(requestBody.Username)
