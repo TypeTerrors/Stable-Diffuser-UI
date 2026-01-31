@@ -9,6 +9,11 @@ services:
       MODEL_PATH: ${PY_MODEL_PATH}
       PYTHONUNBUFFERED: "1"
       PYTHONPATH: "/app"
+      VLLM_USE_V1: "1"
+      VLLM_ATTENTION_BACKEND: "TRITON_ATTN_VLLM_V1"
+      # Increase generation length to avoid truncated answers mid-sentence.
+      # Can be overridden in `.env`.
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-1024}
     volumes:
       - ./py:/app
       - ./py/models:${MODEL_MOUNT_PATH:-/workspace/models}:ro

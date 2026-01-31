@@ -624,7 +624,13 @@ class ImageService(ImageServiceServicer):
             tensor_parallel_size=LLM_TP_SIZE,
             enable_prefix_caching=True,
         )
-        return await AsyncLLMEngine.from_engine_args(args)
+        # vLLM versions differ here:
+        # - Some builds return an awaitable.
+        # - Others (notably some NVIDIA builds) return an object directly.
+        built = AsyncLLMEngine.from_engine_args(args)
+        if asyncio.iscoroutine(built):
+            return await built
+        return built  # type: ignore[return-value]
 
     def _default_sampling_params(self) -> SamplingParams:
         if SamplingParams is None:
