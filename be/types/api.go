@@ -5,6 +5,19 @@ type ImagePostRequest struct {
 	NegativePrompt string `json:"negativePrompt"`
 }
 
+type MediaPostRequest struct {
+	PositivePrompt string      `json:"positivePrompt"`
+	NegativePrompt string      `json:"negativePrompt"`
+	Mode           string      `json:"mode"`
+	InputImage     *MediaInput `json:"inputImage,omitempty"`
+}
+
+type MediaInput struct {
+	DataBase64 string `json:"dataBase64"`
+	MimeType   string `json:"mimeType"`
+	Filename   string `json:"filename"`
+}
+
 type SetModelRequest struct {
 	ModelPath string `json:"modelPath"`
 }

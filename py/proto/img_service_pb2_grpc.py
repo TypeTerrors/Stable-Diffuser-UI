@@ -5,7 +5,7 @@ import warnings
 
 from . import img_service_pb2 as img__service__pb2
 
-GRPC_GENERATED_VERSION = '1.76.0'
+GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -38,6 +38,11 @@ class ImageServiceStub(object):
                 '/generator.ImageService/GenerateImage',
                 request_serializer=img__service__pb2.GenerateImageRequest.SerializeToString,
                 response_deserializer=img__service__pb2.GenerateImageResponse.FromString,
+                _registered_method=True)
+        self.GenerateMedia = channel.unary_unary(
+                '/generator.ImageService/GenerateMedia',
+                request_serializer=img__service__pb2.GenerateMediaRequest.SerializeToString,
+                response_deserializer=img__service__pb2.GenerateMediaResponse.FromString,
                 _registered_method=True)
         self.ListModels = channel.unary_unary(
                 '/generator.ImageService/ListModels',
@@ -95,6 +100,12 @@ class ImageServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GenerateImage(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GenerateMedia(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -167,6 +178,11 @@ def add_ImageServiceServicer_to_server(servicer, server):
                     servicer.GenerateImage,
                     request_deserializer=img__service__pb2.GenerateImageRequest.FromString,
                     response_serializer=img__service__pb2.GenerateImageResponse.SerializeToString,
+            ),
+            'GenerateMedia': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateMedia,
+                    request_deserializer=img__service__pb2.GenerateMediaRequest.FromString,
+                    response_serializer=img__service__pb2.GenerateMediaResponse.SerializeToString,
             ),
             'ListModels': grpc.unary_unary_rpc_method_handler(
                     servicer.ListModels,
@@ -246,6 +262,33 @@ class ImageService(object):
             '/generator.ImageService/GenerateImage',
             img__service__pb2.GenerateImageRequest.SerializeToString,
             img__service__pb2.GenerateImageResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateMedia(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/generator.ImageService/GenerateMedia',
+            img__service__pb2.GenerateMediaRequest.SerializeToString,
+            img__service__pb2.GenerateMediaResponse.FromString,
             options,
             channel_credentials,
             insecure,

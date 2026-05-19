@@ -27,6 +27,34 @@ func (r *Rpc) GenerateImage(positivePrompt, negativePrompt string) (*proto.Gener
 	return resp, nil
 }
 
+func (r *Rpc) GenerateMedia(req *proto.GenerateMediaRequest) (*proto.GenerateMediaResponse, error) {
+	start := time.Now()
+	r.logger.Debug(
+		"rpc GenerateMedia",
+		"mode", req.Mode,
+		"positiveLen", len(req.PositivePrompt),
+		"negativeLen", len(req.NegativePrompt),
+		"inputImageBytes", len(req.InputImage),
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer cancel()
+
+	client := proto.NewImageServiceClient(r.conn)
+	resp, err := client.GenerateMedia(ctx, req)
+	if err != nil {
+		r.logger.Error("rpc GenerateMedia failed", "dur", time.Since(start).String(), "err", err)
+		return nil, err
+	}
+	r.logger.Info(
+		"rpc GenerateMedia ok",
+		"dur", time.Since(start).String(),
+		"mediaType", resp.MediaType,
+		"mimeType", resp.MimeType,
+		"bytes", len(resp.Media),
+	)
+	return resp, nil
+}
+
 func (r *Rpc) Conversation(ctx context.Context, req *proto.ConversationRequest) error {
 
 	r.logger.Info("rpc conversation initiated")

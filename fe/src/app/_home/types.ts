@@ -19,6 +19,9 @@ export type DownloadFilenamePayloadV1 = {
   l: Array<[path: string, weight: number]>;
   pp: string;
   np: string;
+  mode?: string;
+  mt?: "image" | "video";
+  ii?: string;
 };
 
 export type PreviewItem = {

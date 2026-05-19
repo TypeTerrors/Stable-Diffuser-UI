@@ -340,8 +340,8 @@ export default function LlmPage() {
   const canStop = streaming || busy;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-muted/50 to-background text-foreground">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+    <main className="h-screen overflow-hidden bg-gradient-to-b from-muted/50 to-background text-foreground">
+      <div className="mx-auto flex h-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <nav className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="sm">
             <Link href="/">Home</Link>
@@ -407,76 +407,84 @@ export default function LlmPage() {
           </Alert>
         ) : null}
 
-        <Card className="border-muted-foreground/10 shadow-sm">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border-muted-foreground/10 shadow-sm">
           <CardHeader className="space-y-1">
             <CardTitle>Conversation</CardTitle>
             <CardDescription>
               Messages stream from the backend WebSocket. Your session id is {username || "pending"}.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <ScrollArea className="h-[60vh] rounded-lg border bg-background/70">
-              <div className="flex flex-col gap-4 p-4">
-                {messages.length === 0 ? (
-                  <div className="rounded-lg border border-dashed bg-muted/40 p-6 text-sm text-muted-foreground">
-                    Start a conversation by sending a prompt below. Responses will appear here as they stream in.
-                  </div>
-                ) : (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "flex w-full flex-col gap-1",
-                        message.role === "user" ? "items-end" : "items-start"
-                      )}
-                    >
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {message.role === "user" ? "You" : message.role === "assistant" ? "Assistant" : "System"}
-                      </span>
+          <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="flex min-h-0 flex-1 flex-col rounded-lg border bg-background/70">
+              <ScrollArea className="flex-1">
+                <div className="flex flex-col gap-4 p-4">
+                  {messages.length === 0 ? (
+                    <div className="rounded-lg border border-dashed bg-muted/40 p-6 text-sm text-muted-foreground">
+                      Start a conversation by sending a prompt below. Responses will appear here as they stream in.
+                    </div>
+                  ) : (
+                    messages.map((message) => (
                       <div
+                        key={message.id}
                         className={cn(
-                          "max-w-[80%] break-words rounded-2xl px-4 py-3 text-sm shadow-sm",
-                          message.role === "user"
-                            ? "bg-primary text-primary-foreground whitespace-pre-wrap"
-                            : message.role === "assistant"
-                              ? "bg-muted"
-                              : "bg-destructive/10 text-destructive"
+                          "flex w-full flex-col gap-1",
+                          message.role === "user" ? "items-end" : "items-start"
                         )}
                       >
-                        {message.role === "user" ? (
-                          message.content
-                        ) : (
-                          <MarkdownMessage
-                            markdown={message.content || (message.role === "assistant" && streaming ? "…" : "")}
-                            className={message.role === "assistant" ? "text-foreground" : undefined}
-                          />
-                        )}
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {message.role === "user" ? "You" : message.role === "assistant" ? "Assistant" : "System"}
+                        </span>
+                        <div
+                          className={cn(
+                            "max-w-[80%] break-words rounded-2xl px-4 py-3 text-sm shadow-sm",
+                            message.role === "user"
+                              ? "bg-primary text-primary-foreground whitespace-pre-wrap"
+                              : message.role === "assistant"
+                                ? "bg-muted"
+                                : "bg-destructive/10 text-destructive"
+                          )}
+                        >
+                          {message.role === "user" ? (
+                            message.content
+                          ) : (
+                            <MarkdownMessage
+                              markdown={message.content || (message.role === "assistant" && streaming ? "…" : "")}
+                              className={message.role === "assistant" ? "text-foreground" : undefined}
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
-                <div ref={bottomRef} />
-              </div>
-            </ScrollArea>
+                    ))
+                  )}
+                  <div ref={bottomRef} />
+                </div>
+              </ScrollArea>
+            </div>
 
             <Separator />
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <Textarea
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask the model anything…"
-                className="min-h-[120px] resize-none"
-              />
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">Press Enter to send, Shift + Enter for a new line.</p>
-                <Button type="submit" className="gap-2" disabled={!input.trim() || busy || connection !== "connected"}>
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                  Send
-                </Button>
-              </div>
-            </form>
+            <div className="rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur">
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <Textarea
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask the model anything…"
+                  className="min-h-[120px] resize-none"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">Press Enter to send, Shift + Enter for a new line.</p>
+                  <Button
+                    type="submit"
+                    className="gap-2"
+                    disabled={!input.trim() || busy || connection !== "connected"}
+                  >
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    Send
+                  </Button>
+                </div>
+              </form>
+            </div>
           </CardContent>
         </Card>
       </div>

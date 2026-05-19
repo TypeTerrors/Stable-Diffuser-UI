@@ -3,389 +3,532 @@
 isort:skip_file
 """
 
-import builtins
-import collections.abc
-import google.protobuf.descriptor
-import google.protobuf.internal.containers
-import google.protobuf.message
+from collections import abc as _abc
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from google.protobuf.internal import containers as _containers
+import builtins as _builtins
 import sys
-import typing
+import typing as _typing
 
-if sys.version_info >= (3, 10):
-    import typing as typing_extensions
+if sys.version_info >= (3, 11):
+    from typing import TypeAlias as _TypeAlias, Never as _Never
 else:
-    import typing_extensions
+    from typing_extensions import TypeAlias as _TypeAlias, Never as _Never
 
-DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+DESCRIPTOR: _descriptor.FileDescriptor
 
-@typing.final
-class GenerateImageRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class GenerateImageRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    POSITIVE_PROMPT_FIELD_NUMBER: builtins.int
-    NEGATIVE_PROMPT_FIELD_NUMBER: builtins.int
-    positive_prompt: builtins.str
-    negative_prompt: builtins.str
+    POSITIVE_PROMPT_FIELD_NUMBER: _builtins.int
+    NEGATIVE_PROMPT_FIELD_NUMBER: _builtins.int
+    positive_prompt: _builtins.str
+    negative_prompt: _builtins.str
     def __init__(
         self,
         *,
-        positive_prompt: builtins.str = ...,
-        negative_prompt: builtins.str = ...,
+        positive_prompt: _builtins.str = ...,
+        negative_prompt: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GenerateImageRequest: typing_extensions.TypeAlias = GenerateImageRequest
+Global___GenerateImageRequest: _TypeAlias = GenerateImageRequest  # noqa: Y015
 
-@typing.final
-class GenerateImageResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class GenerateImageResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    IMAGE_FIELD_NUMBER: builtins.int
-    MIME_TYPE_FIELD_NUMBER: builtins.int
-    FILENAME_HINT_FIELD_NUMBER: builtins.int
-    image: builtins.bytes
-    mime_type: builtins.str
-    filename_hint: builtins.str
+    IMAGE_FIELD_NUMBER: _builtins.int
+    MIME_TYPE_FIELD_NUMBER: _builtins.int
+    FILENAME_HINT_FIELD_NUMBER: _builtins.int
+    image: _builtins.bytes
+    mime_type: _builtins.str
+    filename_hint: _builtins.str
     def __init__(
         self,
         *,
-        image: builtins.bytes = ...,
-        mime_type: builtins.str = ...,
-        filename_hint: builtins.str = ...,
+        image: _builtins.bytes = ...,
+        mime_type: _builtins.str = ...,
+        filename_hint: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["filename_hint", b"filename_hint", "image", b"image", "mime_type", b"mime_type"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["filename_hint", b"filename_hint", "image", b"image", "mime_type", b"mime_type"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GenerateImageResponse: typing_extensions.TypeAlias = GenerateImageResponse
+Global___GenerateImageResponse: _TypeAlias = GenerateImageResponse  # noqa: Y015
 
-@typing.final
-class ListModelsRequest(google.protobuf.message.Message):
+@_typing.final
+class GenerateMediaRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    POSITIVE_PROMPT_FIELD_NUMBER: _builtins.int
+    NEGATIVE_PROMPT_FIELD_NUMBER: _builtins.int
+    MODE_FIELD_NUMBER: _builtins.int
+    INPUT_IMAGE_FIELD_NUMBER: _builtins.int
+    INPUT_IMAGE_MIME_TYPE_FIELD_NUMBER: _builtins.int
+    INPUT_IMAGE_FILENAME_FIELD_NUMBER: _builtins.int
+    positive_prompt: _builtins.str
+    negative_prompt: _builtins.str
+    mode: _builtins.str
+    input_image: _builtins.bytes
+    input_image_mime_type: _builtins.str
+    input_image_filename: _builtins.str
+    def __init__(
+        self,
+        *,
+        positive_prompt: _builtins.str = ...,
+        negative_prompt: _builtins.str = ...,
+        mode: _builtins.str = ...,
+        input_image: _builtins.bytes = ...,
+        input_image_mime_type: _builtins.str = ...,
+        input_image_filename: _builtins.str = ...,
+    ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["input_image", b"input_image", "input_image_filename", b"input_image_filename", "input_image_mime_type", b"input_image_mime_type", "mode", b"mode", "negative_prompt", b"negative_prompt", "positive_prompt", b"positive_prompt"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
+
+Global___GenerateMediaRequest: _TypeAlias = GenerateMediaRequest  # noqa: Y015
+
+@_typing.final
+class GenerateMediaResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
+
+    MEDIA_FIELD_NUMBER: _builtins.int
+    MIME_TYPE_FIELD_NUMBER: _builtins.int
+    FILENAME_HINT_FIELD_NUMBER: _builtins.int
+    MEDIA_TYPE_FIELD_NUMBER: _builtins.int
+    media: _builtins.bytes
+    mime_type: _builtins.str
+    filename_hint: _builtins.str
+    media_type: _builtins.str
+    def __init__(
+        self,
+        *,
+        media: _builtins.bytes = ...,
+        mime_type: _builtins.str = ...,
+        filename_hint: _builtins.str = ...,
+        media_type: _builtins.str = ...,
+    ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["filename_hint", b"filename_hint", "media", b"media", "media_type", b"media_type", "mime_type", b"mime_type"]  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
+
+Global___GenerateMediaResponse: _TypeAlias = GenerateMediaResponse  # noqa: Y015
+
+@_typing.final
+class ListModelsRequest(_message.Message):
     """List Modeles"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
     def __init__(
         self,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ListModelsRequest: typing_extensions.TypeAlias = ListModelsRequest
+Global___ListModelsRequest: _TypeAlias = ListModelsRequest  # noqa: Y015
 
-@typing.final
-class ListModelResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ListModelResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_PATHS_FIELD_NUMBER: builtins.int
-    @property
-    def model_paths(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    MODEL_PATHS_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def model_paths(self) -> _containers.RepeatedScalarFieldContainer[_builtins.str]: ...
     def __init__(
         self,
         *,
-        model_paths: collections.abc.Iterable[builtins.str] | None = ...,
+        model_paths: _abc.Iterable[_builtins.str] | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_paths", b"model_paths"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["model_paths", b"model_paths"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ListModelResponse: typing_extensions.TypeAlias = ListModelResponse
+Global___ListModelResponse: _TypeAlias = ListModelResponse  # noqa: Y015
 
-@typing.final
-class SetModelRequest(google.protobuf.message.Message):
+@_typing.final
+class SetModelRequest(_message.Message):
     """Set Models"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_PATH_FIELD_NUMBER: builtins.int
-    model_path: builtins.str
+    MODEL_PATH_FIELD_NUMBER: _builtins.int
+    model_path: _builtins.str
     def __init__(
         self,
         *,
-        model_path: builtins.str = ...,
+        model_path: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["model_path", b"model_path"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SetModelRequest: typing_extensions.TypeAlias = SetModelRequest
+Global___SetModelRequest: _TypeAlias = SetModelRequest  # noqa: Y015
 
-@typing.final
-class SetModelResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class SetModelResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_PATH_FIELD_NUMBER: builtins.int
-    model_path: builtins.str
+    MODEL_PATH_FIELD_NUMBER: _builtins.int
+    model_path: _builtins.str
     def __init__(
         self,
         *,
-        model_path: builtins.str = ...,
+        model_path: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["model_path", b"model_path"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SetModelResponse: typing_extensions.TypeAlias = SetModelResponse
+Global___SetModelResponse: _TypeAlias = SetModelResponse  # noqa: Y015
 
-@typing.final
-class GetCurrentModelRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class GetCurrentModelRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
     def __init__(
         self,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GetCurrentModelRequest: typing_extensions.TypeAlias = GetCurrentModelRequest
+Global___GetCurrentModelRequest: _TypeAlias = GetCurrentModelRequest  # noqa: Y015
 
-@typing.final
-class GetCurrentModelResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class GetCurrentModelResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_PATH_FIELD_NUMBER: builtins.int
-    model_path: builtins.str
+    MODEL_PATH_FIELD_NUMBER: _builtins.int
+    model_path: _builtins.str
     def __init__(
         self,
         *,
-        model_path: builtins.str = ...,
+        model_path: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["model_path", b"model_path"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GetCurrentModelResponse: typing_extensions.TypeAlias = GetCurrentModelResponse
+Global___GetCurrentModelResponse: _TypeAlias = GetCurrentModelResponse  # noqa: Y015
 
-@typing.final
-class ClearModelRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ClearModelRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
     def __init__(
         self,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ClearModelRequest: typing_extensions.TypeAlias = ClearModelRequest
+Global___ClearModelRequest: _TypeAlias = ClearModelRequest  # noqa: Y015
 
-@typing.final
-class ClearModelResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ClearModelResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_PATH_FIELD_NUMBER: builtins.int
-    LORAS_FIELD_NUMBER: builtins.int
-    model_path: builtins.str
-    @property
-    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    MODEL_PATH_FIELD_NUMBER: _builtins.int
+    LORAS_FIELD_NUMBER: _builtins.int
+    model_path: _builtins.str
+    @_builtins.property
+    def loras(self) -> _containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
     def __init__(
         self,
         *,
-        model_path: builtins.str = ...,
-        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+        model_path: _builtins.str = ...,
+        loras: _abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras", "model_path", b"model_path"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["loras", b"loras", "model_path", b"model_path"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ClearModelResponse: typing_extensions.TypeAlias = ClearModelResponse
+Global___ClearModelResponse: _TypeAlias = ClearModelResponse  # noqa: Y015
 
-@typing.final
-class SetLlmModelRequest(google.protobuf.message.Message):
+@_typing.final
+class SetLlmModelRequest(_message.Message):
     """Set LLM Model"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_PATH_FIELD_NUMBER: builtins.int
-    model_path: builtins.str
+    MODEL_PATH_FIELD_NUMBER: _builtins.int
+    model_path: _builtins.str
     def __init__(
         self,
         *,
-        model_path: builtins.str = ...,
+        model_path: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["model_path", b"model_path"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SetLlmModelRequest: typing_extensions.TypeAlias = SetLlmModelRequest
+Global___SetLlmModelRequest: _TypeAlias = SetLlmModelRequest  # noqa: Y015
 
-@typing.final
-class SetLlmModelResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class SetLlmModelResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    MODEL_PATH_FIELD_NUMBER: builtins.int
-    model_path: builtins.str
+    MODEL_PATH_FIELD_NUMBER: _builtins.int
+    model_path: _builtins.str
     def __init__(
         self,
         *,
-        model_path: builtins.str = ...,
+        model_path: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["model_path", b"model_path"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["model_path", b"model_path"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SetLlmModelResponse: typing_extensions.TypeAlias = SetLlmModelResponse
+Global___SetLlmModelResponse: _TypeAlias = SetLlmModelResponse  # noqa: Y015
 
-@typing.final
-class GetCurrentLorasRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class GetCurrentLorasRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
     def __init__(
         self,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GetCurrentLorasRequest: typing_extensions.TypeAlias = GetCurrentLorasRequest
+Global___GetCurrentLorasRequest: _TypeAlias = GetCurrentLorasRequest  # noqa: Y015
 
-@typing.final
-class GetCurrentLorasResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class GetCurrentLorasResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    LORAS_FIELD_NUMBER: builtins.int
-    @property
-    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    LORAS_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def loras(self) -> _containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
     def __init__(
         self,
         *,
-        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+        loras: _abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["loras", b"loras"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GetCurrentLorasResponse: typing_extensions.TypeAlias = GetCurrentLorasResponse
+Global___GetCurrentLorasResponse: _TypeAlias = GetCurrentLorasResponse  # noqa: Y015
 
-@typing.final
-class ClearLorasRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ClearLorasRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
     def __init__(
         self,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ClearLorasRequest: typing_extensions.TypeAlias = ClearLorasRequest
+Global___ClearLorasRequest: _TypeAlias = ClearLorasRequest  # noqa: Y015
 
-@typing.final
-class ClearLorasResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ClearLorasResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    LORAS_FIELD_NUMBER: builtins.int
-    @property
-    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    LORAS_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def loras(self) -> _containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
     def __init__(
         self,
         *,
-        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+        loras: _abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["loras", b"loras"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ClearLorasResponse: typing_extensions.TypeAlias = ClearLorasResponse
+Global___ClearLorasResponse: _TypeAlias = ClearLorasResponse  # noqa: Y015
 
-@typing.final
-class ListLorasRequest(google.protobuf.message.Message):
+@_typing.final
+class ListLorasRequest(_message.Message):
     """List Loras"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
     def __init__(
         self,
     ) -> None: ...
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ListLorasRequest: typing_extensions.TypeAlias = ListLorasRequest
+Global___ListLorasRequest: _TypeAlias = ListLorasRequest  # noqa: Y015
 
-@typing.final
-class ListLorasResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ListLorasResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    LORA_PATH_FIELD_NUMBER: builtins.int
-    @property
-    def lora_path(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    LORA_PATH_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def lora_path(self) -> _containers.RepeatedScalarFieldContainer[_builtins.str]: ...
     def __init__(
         self,
         *,
-        lora_path: collections.abc.Iterable[builtins.str] | None = ...,
+        lora_path: _abc.Iterable[_builtins.str] | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["lora_path", b"lora_path"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["lora_path", b"lora_path"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ListLorasResponse: typing_extensions.TypeAlias = ListLorasResponse
+Global___ListLorasResponse: _TypeAlias = ListLorasResponse  # noqa: Y015
 
-@typing.final
-class SetLora(google.protobuf.message.Message):
+@_typing.final
+class SetLora(_message.Message):
     """Set Loras"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
-    WEIGHT_FIELD_NUMBER: builtins.int
-    PATH_FIELD_NUMBER: builtins.int
-    weight: builtins.float
-    path: builtins.str
+    WEIGHT_FIELD_NUMBER: _builtins.int
+    PATH_FIELD_NUMBER: _builtins.int
+    weight: _builtins.float
+    path: _builtins.str
     def __init__(
         self,
         *,
-        weight: builtins.float = ...,
-        path: builtins.str = ...,
+        weight: _builtins.float = ...,
+        path: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["path", b"path", "weight", b"weight"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["path", b"path", "weight", b"weight"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SetLora: typing_extensions.TypeAlias = SetLora
+Global___SetLora: _TypeAlias = SetLora  # noqa: Y015
 
-@typing.final
-class SetLoraRequest(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class SetLoraRequest(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    LORAS_FIELD_NUMBER: builtins.int
-    @property
-    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    LORAS_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def loras(self) -> _containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
     def __init__(
         self,
         *,
-        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+        loras: _abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["loras", b"loras"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SetLoraRequest: typing_extensions.TypeAlias = SetLoraRequest
+Global___SetLoraRequest: _TypeAlias = SetLoraRequest  # noqa: Y015
 
-@typing.final
-class SetLoraResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class SetLoraResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    LORAS_FIELD_NUMBER: builtins.int
-    @property
-    def loras(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
+    LORAS_FIELD_NUMBER: _builtins.int
+    @_builtins.property
+    def loras(self) -> _containers.RepeatedCompositeFieldContainer[Global___SetLora]: ...
     def __init__(
         self,
         *,
-        loras: collections.abc.Iterable[Global___SetLora] | None = ...,
+        loras: _abc.Iterable[Global___SetLora] | None = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["loras", b"loras"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["loras", b"loras"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SetLoraResponse: typing_extensions.TypeAlias = SetLoraResponse
+Global___SetLoraResponse: _TypeAlias = SetLoraResponse  # noqa: Y015
 
-@typing.final
-class ConversationRequest(google.protobuf.message.Message):
+@_typing.final
+class ConversationRequest(_message.Message):
     """rpc Conversation (ConversationRequest) returns stream (ConversationResponse);"""
 
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+    DESCRIPTOR: _descriptor.Descriptor
 
-    USERNAME_FIELD_NUMBER: builtins.int
-    PROMPT_FIELD_NUMBER: builtins.int
-    username: builtins.str
-    prompt: builtins.str
+    USERNAME_FIELD_NUMBER: _builtins.int
+    PROMPT_FIELD_NUMBER: _builtins.int
+    username: _builtins.str
+    prompt: _builtins.str
     def __init__(
         self,
         *,
-        username: builtins.str = ...,
-        prompt: builtins.str = ...,
+        username: _builtins.str = ...,
+        prompt: _builtins.str = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["prompt", b"prompt", "username", b"username"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["prompt", b"prompt", "username", b"username"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ConversationRequest: typing_extensions.TypeAlias = ConversationRequest
+Global___ConversationRequest: _TypeAlias = ConversationRequest  # noqa: Y015
 
-@typing.final
-class ConversationResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+@_typing.final
+class ConversationResponse(_message.Message):
+    DESCRIPTOR: _descriptor.Descriptor
 
-    USERNAME_FIELD_NUMBER: builtins.int
-    MESSAGE_FIELD_NUMBER: builtins.int
-    username: builtins.str
-    message: builtins.bytes
+    USERNAME_FIELD_NUMBER: _builtins.int
+    MESSAGE_FIELD_NUMBER: _builtins.int
+    username: _builtins.str
+    message: _builtins.bytes
     def __init__(
         self,
         *,
-        username: builtins.str = ...,
-        message: builtins.bytes = ...,
+        username: _builtins.str = ...,
+        message: _builtins.bytes = ...,
     ) -> None: ...
-    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["message", b"message", "username", b"username"]
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["message", b"message", "username", b"username"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+    def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ConversationResponse: typing_extensions.TypeAlias = ConversationResponse
+Global___ConversationResponse: _TypeAlias = ConversationResponse  # noqa: Y015

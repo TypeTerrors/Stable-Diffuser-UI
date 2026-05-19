@@ -4,6 +4,7 @@ package generator;
 option go_package = "proto/";
 service ImageService {
     rpc GenerateImage (GenerateImageRequest) returns (GenerateImageResponse);
+    rpc GenerateMedia (GenerateMediaRequest) returns (GenerateMediaResponse);
     
     rpc ListModels (ListModelsRequest) returns (ListModelResponse);
     rpc SetModel (SetModelRequest) returns (SetModelResponse);
@@ -29,6 +30,22 @@ message GenerateImageResponse {
     bytes image = 1;
     string mime_type = 2;
     string filename_hint = 3;
+}
+
+message GenerateMediaRequest {
+    string positive_prompt = 1;
+    string negative_prompt = 2;
+    string mode = 3;
+    bytes input_image = 4;
+    string input_image_mime_type = 5;
+    string input_image_filename = 6;
+}
+
+message GenerateMediaResponse {
+    bytes media = 1;
+    string mime_type = 2;
+    string filename_hint = 3;
+    string media_type = 4;
 }
 
 // List Modeles

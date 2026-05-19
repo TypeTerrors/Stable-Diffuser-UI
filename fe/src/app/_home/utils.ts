@@ -90,7 +90,7 @@ export function decodeBase64UrlToJson<T>(value: string): T {
   return JSON.parse(json) as T;
 }
 
-export function downloadFilenameFromPayloadV1(payload: DownloadFilenamePayloadV1, extension: "png" | "jpg" | "webp" = "png"): string {
+export function downloadFilenameFromPayloadV1(payload: DownloadFilenamePayloadV1, extension: "png" | "jpg" | "webp" | "mp4" = "png"): string {
   // Put the uid first so users can visually associate the file with the settings inside the payload.
   //
   // Important: browsers/OSes often truncate very long download filenames. Since this payload can include

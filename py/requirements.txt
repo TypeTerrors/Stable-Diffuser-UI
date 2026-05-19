@@ -1,8 +1,11 @@
 diffusers
 grpcio>=1.76.0
 grpcio-tools>=1.76.0
+imageio
+imageio-ffmpeg
 msgspec
 mypy-protobuf
-peft
 nvidia-ml-py
+peft
+Pillow
 pybase64

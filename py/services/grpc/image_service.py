@@ -1,9 +1,11 @@
 import asyncio
+import inspect
 import io
 import math
 import os
 import threading
 import time
+import tempfile
 import uuid
 from dataclasses import dataclass
 from logging import Logger
@@ -12,7 +14,9 @@ from typing import AsyncIterator, Tuple
 
 import grpc
 import torch
-from diffusers import StableDiffusionXLPipeline
+from diffusers import DiffusionPipeline, StableDiffusionXLPipeline
+from diffusers.utils import export_to_video
+from PIL import Image
 from proto.img_service_pb2 import (
     ClearModelRequest,
     ClearModelResponse,
@@ -20,6 +24,8 @@ from proto.img_service_pb2 import (
     ClearLorasResponse,
     GenerateImageRequest,
     GenerateImageResponse,
+    GenerateMediaRequest,
+    GenerateMediaResponse,
     GetCurrentModelRequest,
     GetCurrentModelResponse,
     GetCurrentLorasRequest,
@@ -75,6 +81,19 @@ LLM_TOP_P = float(os.getenv("LLM_TOP_P", "0.95"))
 LLM_FLUSH_EVERY_MS = int(os.getenv("LLM_FLUSH_EVERY_MS", "25"))
 LLM_FLUSH_MAX_CHARS = int(os.getenv("LLM_FLUSH_MAX_CHARS", "512"))
 
+VIDEO_MODEL_HINTS = (
+    "video",
+    "ltx",
+    "ltxv",
+    "wan",
+    "hunyuan",
+    "cogvideo",
+    "mochi",
+    "zeroscope",
+    "animatediff",
+    "svd",
+)
+
 
 @dataclass
 class StreamBuffer:
@@ -112,6 +131,10 @@ class ImageService(ImageServiceServicer):
         self._llm_lock = threading.Lock()
         self.llm = None
         self.llm_model_path = ""
+        self.pipe = None
+        self.model_path = ""
+        self.current_loras = []
+        self.model_media_type = ""
 
     def _execution_device_for_pipe(self) -> torch.device:
         device = getattr(self.pipe, "_execution_device", None)
@@ -338,9 +361,149 @@ class ImageService(ImageServiceServicer):
                 return True
         return False
 
-    def GenerateImage(self, request: GenerateImageRequest, context):
+    def _is_video_model_path(self, model_path: Path) -> bool:
+        normalized = model_path.as_posix().lower()
+        return any(hint in normalized for hint in VIDEO_MODEL_HINTS)
+
+    def _candidate_video_pipeline_classes(self, model_path: Path) -> list[type]:
+        normalized = model_path.as_posix().lower()
+        class_names: list[str] = []
+        if "ltx" in normalized:
+            class_names.extend(["LTXImageToVideoPipeline", "LTXVideoPipeline", "LTXPipeline"])
+        if "wan" in normalized:
+            class_names.extend(["WanImageToVideoPipeline", "WanPipeline"])
+        if "cogvideo" in normalized:
+            class_names.extend(["CogVideoXImageToVideoPipeline", "CogVideoXPipeline"])
+        if "hunyuan" in normalized:
+            class_names.append("HunyuanVideoPipeline")
+        if "mochi" in normalized:
+            class_names.append("MochiPipeline")
+        if "zeroscope" in normalized or "text-to-video" in normalized or "text_to_video" in normalized:
+            class_names.append("TextToVideoSDPipeline")
+        if "svd" in normalized or "stable-video" in normalized:
+            class_names.append("StableVideoDiffusionPipeline")
+
+        # Keep a generic fallback last. Diffusers can resolve repository folders
+        # with model_index.json even when no specific class is chosen.
+        class_names.append("DiffusionPipeline")
+
+        seen: set[str] = set()
+        classes: list[type] = []
+        import diffusers
+
+        for class_name in class_names:
+            if class_name in seen:
+                continue
+            seen.add(class_name)
+            pipeline_cls = getattr(diffusers, class_name, None)
+            if pipeline_cls is not None:
+                classes.append(pipeline_cls)
+        return classes
+
+    def _load_video_pipeline(self, model_path: Path):
+        errors: list[str] = []
+        for pipeline_cls in self._candidate_video_pipeline_classes(model_path):
+            class_name = getattr(pipeline_cls, "__name__", str(pipeline_cls))
+            try:
+                if model_path.is_dir():
+                    pipe = pipeline_cls.from_pretrained(
+                        str(model_path),
+                        torch_dtype=torch.float16,
+                    )
+                elif hasattr(pipeline_cls, "from_single_file"):
+                    pipe = pipeline_cls.from_single_file(
+                        str(model_path),
+                        torch_dtype=torch.float16,
+                    )
+                else:
+                    errors.append(f"{class_name}: from_single_file is not available")
+                    continue
+
+                return pipe.to("cuda")
+            except Exception as exc:
+                errors.append(f"{class_name}: {type(exc).__name__}: {exc}")
+
+        detail = "; ".join(errors[-4:])
+        raise RuntimeError(
+            "Failed to load video pipeline. This model may need a Diffusers folder export "
+            f"or a model-specific loader. Attempts: {detail}"
+        )
+
+    def _pipe_accepts_kwarg(self, name: str) -> bool:
+        try:
+            sig = inspect.signature(self.pipe.__call__)
+        except Exception:
+            return True
+        if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in sig.parameters.values()):
+            return True
+        return name in sig.parameters
+
+    def _filtered_pipe_kwargs(self, kwargs: dict) -> dict:
+        return {key: value for key, value in kwargs.items() if value is not None and self._pipe_accepts_kwarg(key)}
+
+    def _decode_input_image(self, image_bytes: bytes) -> Image.Image:
+        if not image_bytes:
+            raise ValueError("input_image is required for image-to-video generation")
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            return image.convert("RGB")
+
+    def _first_batch_frames(self, value):
+        if value is None:
+            return None
+        if isinstance(value, torch.Tensor):
+            tensor = value.detach().cpu()
+            if tensor.ndim == 5:
+                tensor = tensor[0]
+            if tensor.ndim == 4 and tensor.shape[0] in (1, 3, 4):
+                tensor = tensor.permute(1, 2, 3, 0)
+            if tensor.ndim == 4:
+                frames = []
+                for frame in tensor:
+                    frame = frame.float()
+                    if frame.max() <= 1:
+                        frame = frame * 255
+                    frame = frame.clamp(0, 255).byte().numpy()
+                    frames.append(Image.fromarray(frame))
+                return frames
+        if isinstance(value, (list, tuple)):
+            if len(value) == 0:
+                return []
+            first = value[0]
+            if isinstance(first, (list, tuple)):
+                return list(first)
+            return list(value)
+        return None
+
+    def _frames_from_output(self, output) -> list:
+        for attr in ("frames", "videos"):
+            frames = self._first_batch_frames(getattr(output, attr, None))
+            if frames is not None:
+                return frames
+        if isinstance(output, (list, tuple)) and output:
+            frames = self._first_batch_frames(output[0])
+            if frames is not None:
+                return frames
+        raise RuntimeError("Video pipeline did not return frames or videos.")
+
+    def _export_frames_to_mp4(self, frames: list) -> bytes:
+        if not frames:
+            raise RuntimeError("Video pipeline returned no frames.")
+        tmp_path = ""
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                tmp_path = tmp.name
+            export_to_video(frames, tmp_path, fps=8)
+            return Path(tmp_path).read_bytes()
+        finally:
+            if tmp_path:
+                try:
+                    Path(tmp_path).unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+    def _generate_image_bytes(self, positive_prompt: str, negative_prompt: str) -> bytes:
         if not hasattr(self, "pipe") or self.pipe is None:
-            context.abort(grpc.StatusCode.FAILED_PRECONDITION, "Model must be set before generating images.")
+            raise RuntimeError("Model must be set before generating images.")
 
         try:
             (
@@ -348,7 +511,7 @@ class ImageService(ImageServiceServicer):
                 negative_prompt_embeds,
                 pooled_prompt_embeds,
                 negative_pooled_prompt_embeds,
-            ) = self._encode_long_prompts_for_sdxl(request.positive_prompt, request.negative_prompt)
+            ) = self._encode_long_prompts_for_sdxl(positive_prompt, negative_prompt)
             prompt = None
             negative_prompt = None
         except Exception:
@@ -357,8 +520,8 @@ class ImageService(ImageServiceServicer):
             negative_prompt_embeds = None
             pooled_prompt_embeds = None
             negative_pooled_prompt_embeds = None
-            prompt = request.positive_prompt
-            negative_prompt = request.negative_prompt
+            prompt = positive_prompt
+            negative_prompt = negative_prompt
 
         image = self.pipe(
             height=1024,
@@ -375,25 +538,126 @@ class ImageService(ImageServiceServicer):
 
         buf = io.BytesIO()
         image.save(buf, format="png")
+        return buf.getvalue()
+
+    def _generate_video_bytes(self, request: GenerateMediaRequest) -> bytes:
+        if not hasattr(self, "pipe") or self.pipe is None:
+            raise RuntimeError("Model must be set before generating videos.")
+        if self.model_media_type != "video":
+            raise RuntimeError("Current model is not marked as video-capable. Select a video model before generating video.")
+
+        mode = (request.mode or "").strip().lower().replace("-", "_")
+        has_image = bool(request.input_image)
+        image = self._decode_input_image(request.input_image) if has_image else None
+
+        if mode in ("image_to_video", "i2v") and image is None:
+            # User selected an image-to-video-ish mode but did not attach an image.
+            # Fall back to text-to-video exactly as requested.
+            mode = "text_to_video"
+        elif mode in ("auto", "", "video") and image is not None:
+            mode = "image_to_video"
+        elif mode in ("auto", "", "video"):
+            mode = "text_to_video"
+
+        kwargs = {
+            "prompt": request.positive_prompt or "",
+            "negative_prompt": request.negative_prompt or "",
+            "image": image,
+            "num_frames": int(os.getenv("VIDEO_NUM_FRAMES", "49")),
+            "num_inference_steps": int(os.getenv("VIDEO_NUM_INFERENCE_STEPS", "30")),
+            "guidance_scale": float(os.getenv("VIDEO_GUIDANCE_SCALE", "6.0")),
+            "height": int(os.getenv("VIDEO_HEIGHT", "512")),
+            "width": int(os.getenv("VIDEO_WIDTH", "512")),
+        }
+
+        if mode == "image_to_video" and image is not None:
+            kwargs["height"] = None
+            kwargs["width"] = None
+
+        with torch.inference_mode():
+            output = self.pipe(**self._filtered_pipe_kwargs(kwargs))
+
+        frames = self._frames_from_output(output)
+        return self._export_frames_to_mp4(frames)
+
+    def GenerateImage(self, request: GenerateImageRequest, context):
+        if not hasattr(self, "pipe") or self.pipe is None:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, "Model must be set before generating images.")
+
+        try:
+            image_bytes = self._generate_image_bytes(request.positive_prompt, request.negative_prompt)
+        except RuntimeError as exc:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(exc))
+        except Exception:
+            self.log.exception("Failed to generate image")
+            context.abort(grpc.StatusCode.INTERNAL, "Failed to generate image.")
 
         return GenerateImageResponse(
-            image=buf.getvalue(),
+            image=image_bytes,
             mime_type="image/png",
             filename_hint="sdxl.png"
+        )
+
+    def GenerateMedia(self, request: GenerateMediaRequest, context):
+        mode = (request.mode or "auto").strip().lower().replace("-", "_")
+        wants_video = mode in ("video", "text_to_video", "image_to_video", "t2v", "i2v")
+        if mode == "auto":
+            wants_video = self.model_media_type == "video"
+
+        if wants_video:
+            try:
+                video_bytes = self._generate_video_bytes(request)
+            except RuntimeError as exc:
+                context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(exc))
+            except Exception:
+                self.log.exception("Failed to generate video")
+                context.abort(grpc.StatusCode.INTERNAL, "Failed to generate video.")
+
+            return GenerateMediaResponse(
+                media=video_bytes,
+                mime_type="video/mp4",
+                filename_hint="generated.mp4",
+                media_type="video",
+            )
+
+        try:
+            image_bytes = self._generate_image_bytes(request.positive_prompt, request.negative_prompt)
+        except RuntimeError as exc:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(exc))
+        except Exception:
+            self.log.exception("Failed to generate image")
+            context.abort(grpc.StatusCode.INTERNAL, "Failed to generate image.")
+
+        return GenerateMediaResponse(
+            media=image_bytes,
+            mime_type="image/png",
+            filename_hint="sdxl.png",
+            media_type="image",
         )
             
     def SetModel(self, request: SetModelRequest, context):
         model_path = Path(request.model_path)
-        if not model_path.exists() or model_path.is_dir():
+        if not model_path.exists():
             context.abort(grpc.StatusCode.NOT_FOUND, f"Model not found: {request.model_path}")
+        if model_path.is_dir() and not self._is_video_model_path(model_path):
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Image models must be .safetensors files: {request.model_path}")
 
         if hasattr(self, "pipe") and self.pipe is not None:
             del self.pipe
 
-        self.pipe = StableDiffusionXLPipeline.from_single_file(
-            str(model_path),
-            torch_dtype=torch.float16,
-        ).to("cuda")
+        if self._is_video_model_path(model_path):
+            try:
+                self.pipe = self._load_video_pipeline(model_path)
+            except Exception as exc:
+                self.log.exception("Failed to load video model")
+                context.abort(grpc.StatusCode.INTERNAL, str(exc))
+            self.model_media_type = "video"
+        else:
+            self.pipe = StableDiffusionXLPipeline.from_single_file(
+                str(model_path),
+                torch_dtype=torch.float16,
+            ).to("cuda")
+            self.model_media_type = "image"
         self.model_path = str(model_path)
         self.current_loras = []
 
@@ -443,6 +707,7 @@ class ImageService(ImageServiceServicer):
 
         self.model_path = ""
         self.current_loras = []
+        self.model_media_type = ""
         try:
             torch.cuda.empty_cache()
         except Exception:

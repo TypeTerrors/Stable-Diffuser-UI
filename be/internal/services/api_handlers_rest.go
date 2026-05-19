@@ -4,6 +4,7 @@ import (
 	"be/proto"
 	"be/types"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -16,6 +17,45 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
+
+func decodeBase64Payload(value string) ([]byte, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	if comma := strings.Index(value, ","); comma >= 0 && strings.Contains(value[:comma], "base64") {
+		value = value[comma+1:]
+	}
+	value = strings.NewReplacer("\n", "", "\r", "", "\t", "", " ", "").Replace(value)
+
+	decoders := []*base64.Encoding{
+		base64.StdEncoding,
+		base64.RawStdEncoding,
+		base64.URLEncoding,
+		base64.RawURLEncoding,
+	}
+	var lastErr error
+	for _, decoder := range decoders {
+		decoded, err := decoder.DecodeString(value)
+		if err == nil {
+			return decoded, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+func mediaTypeFromMime(mimeType string) string {
+	mimeType = strings.ToLower(strings.TrimSpace(mimeType))
+	switch {
+	case strings.HasPrefix(mimeType, "video/"):
+		return "video"
+	case strings.HasPrefix(mimeType, "image/"):
+		return "image"
+	default:
+		return "media"
+	}
+}
 
 func (a *Api) Health() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
@@ -60,6 +100,85 @@ func (a *Api) GenerateImage() fiber.Handler {
 		return nil
 	}
 }
+
+func (a *Api) GenerateMedia() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		logger := HttpLogger("GenerateMedia", ctx)
+
+		var requestBody types.MediaPostRequest
+		if err := ctx.BodyParser(&requestBody); err != nil {
+			logger.Error("invalid body", "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid body",
+			})
+		}
+
+		var inputImage []byte
+		var inputImageMimeType string
+		var inputImageFilename string
+		if requestBody.InputImage != nil && strings.TrimSpace(requestBody.InputImage.DataBase64) != "" {
+			decoded, err := decodeBase64Payload(requestBody.InputImage.DataBase64)
+			if err != nil {
+				logger.Error("invalid input image base64", "err", err)
+				return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+					Error:   err.Error(),
+					Message: "invalid input image data",
+				})
+			}
+			inputImage = decoded
+			inputImageMimeType = strings.TrimSpace(requestBody.InputImage.MimeType)
+			inputImageFilename = strings.TrimSpace(requestBody.InputImage.Filename)
+		}
+
+		mode := strings.TrimSpace(requestBody.Mode)
+		if mode == "" {
+			mode = "auto"
+		}
+
+		logger.Info(
+			"media generate requested",
+			"mode", mode,
+			"positiveLen", len(requestBody.PositivePrompt),
+			"negativeLen", len(requestBody.NegativePrompt),
+			"inputImageBytes", len(inputImage),
+		)
+
+		resp, err := a.rpc.GenerateMedia(&proto.GenerateMediaRequest{
+			PositivePrompt:     requestBody.PositivePrompt,
+			NegativePrompt:     requestBody.NegativePrompt,
+			Mode:               mode,
+			InputImage:         inputImage,
+			InputImageMimeType: inputImageMimeType,
+			InputImageFilename: inputImageFilename,
+		})
+		if err != nil {
+			logger.Error("media generate failed", "err", err)
+			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
+				Error:   err.Error(),
+				Message: "python service failed to generate media",
+			})
+		}
+
+		mediaType := strings.TrimSpace(resp.MediaType)
+		if mediaType == "" {
+			mediaType = mediaTypeFromMime(resp.MimeType)
+		}
+		filenameHint := strings.TrimSpace(resp.FilenameHint)
+		if filenameHint == "" {
+			filenameHint = "generated"
+		}
+
+		logger.Info("media generate completed", "mediaType", mediaType, "mimeType", resp.MimeType, "bytes", len(resp.Media))
+
+		ctx.Set(fiber.HeaderContentType, resp.MimeType)
+		ctx.Set("X-Media-Type", mediaType)
+		ctx.Set(fiber.HeaderContentDisposition, fmt.Sprintf("inline; filename=%s", filenameHint))
+		ctx.Response().SetBodyRaw(resp.Media)
+		return nil
+	}
+}
+
 func (a *Api) ListModels() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		logger := HttpLogger("ListModels", ctx)
@@ -469,7 +588,7 @@ func (a *Api) Conversation() fiber.Handler {
 
 		a.ConversationManager.mx.Lock()
 		if _, ok := a.ConversationManager.clients[requestBody.Username]; !ok {
-			
+
 			a.ConversationManager.mx.Unlock()
 			return ctx.Status(fiber.StatusBadRequest).JSON(types.ErrorResponse{
 				Error:   fmt.Errorf("Username does not have websocket connection established").Error(),

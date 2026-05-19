@@ -1,11 +1,11 @@
 # img-generator
 
-Bring your own **Stable Diffusion XL** checkpoint + **LoRAs**, then generate images from a clean web UI.
+Bring your own **Stable Diffusion XL** checkpoint, video-capable Diffusers checkpoint/folder, and **LoRAs**, then generate images or videos from a clean web UI.
 
 This repo is a full‑stack playground that intentionally splits responsibilities:
-- **`py/`** does the heavy GPU inference (Diffusers + SDXL) behind a **gRPC** boundary.
+- **`py/`** does the heavy GPU inference (Diffusers + SDXL/video pipelines) behind a **gRPC** boundary.
 - **`be/`** is a small **Go + Fiber** HTTP API that talks to the worker over gRPC.
-- **`fe/`** is a **Next.js** UI (shadcn/ui) that lets you pick a model/LoRAs and prompt for images.
+- **`fe/`** is a **Next.js** UI (shadcn/ui) that lets you pick a model/LoRAs and prompt for images or videos.
 
 If you want a practical template for “GPU worker + typed RPC + web UI”, you’re in the right place.
 
@@ -16,6 +16,9 @@ If you want a practical template for “GPU worker + typed RPC + web UI”, you�
 - Browse available `.safetensors` **models** and **LoRAs** from the UI.
 - **Apply** a base model, then **stack LoRAs** with weights.
 - Generate an image from a **positive** and **negative** prompt (API returns a raw PNG).
+- Generate media through the newer `/generatemedia` path. Image models return PNGs; video-capable models return MP4s.
+- Optionally attach an input image for image-to-video. If no image is attached to a video model, generation falls back to text-to-video.
+- Download models by **Civitai model version ID**. Downloaded files use the `id-name.safetensors` convention so the ID remains recoverable from the filename.
 
 ---
 
@@ -23,12 +26,12 @@ If you want a practical template for “GPU worker + typed RPC + web UI”, you�
 
 ```
 Browser (Next.js UI)
-  | HTTP (JSON + PNG bytes)
+  | HTTP (JSON + image/video bytes)
   v
 Go API (Fiber)
   | gRPC (typed calls)
   v
-Python Worker (Diffusers SDXL on GPU)
+Python Worker (Diffusers SDXL/video pipelines on GPU)
 ```
 
 The Go API also **scans the mounted model/LoRA folders on disk** to populate the UI pickers.
@@ -107,7 +110,7 @@ Open `http://localhost:3000` (or `http://localhost:$FE_PORT`) and:
 1. Click “Refresh data” (top right).
 2. Select a model → “Apply model”.
 3. (Optional) Add LoRAs, adjust weights → “Apply LoRAs”.
-4. Enter prompts → “Generate”.
+4. Pick the generation mode, optionally attach an input image for video, then enter prompts → “Generate”.
 
 Stop services:
 
@@ -122,7 +125,7 @@ docker compose down
 ### `fe/` — Frontend (Next.js)
 
 - **Tech:** Next.js (App Router), React, TypeScript, Tailwind, shadcn/ui
-- **What it does:** Calls the Go API to list/apply models + LoRAs, then posts prompts to generate images.
+- **What it does:** Calls the Go API to list/apply models + LoRAs, then posts prompts and optional input images to generate image/video media.
 - **Config:** `NEXT_PUBLIC_API_BASE_URL` (example `http://localhost:8080`)
 - **Key file:** `fe/src/app/page.tsx`
 
@@ -139,8 +142,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 npm run dev
 - **Tech:** Go + Fiber, gRPC client to the Python worker
 - **What it does:**
   - Exposes HTTP endpoints used by the UI
-  - Proxies model/LoRA actions + generation to the Python worker via gRPC
+  - Proxies model/LoRA actions + media generation to the Python worker via gRPC
   - Lists files by walking `MODEL_MOUNT_PATH` and `LORA_MOUNT_PATH`
+  - Downloads models from Civitai by model version ID and notifies the UI over WebSocket
 - **Config file:** `be/config/config.yaml` (env interpolation via `gonfig`)
 
 Run locally (example when the Python worker is on your machine):
@@ -155,8 +159,9 @@ RPC_PEER=localhost RPC_PORT=50051 API_PORT=8080 API_ALLOWED_ORIGINS=http://local
 - **Tech:** `diffusers`, `torch`, `transformers`, `peft`, `grpcio`
 - **What it does:**
   - Runs a gRPC server on `:50051`
-  - Loads an SDXL checkpoint when you call `SetModel`
-  - Generates a PNG for `GenerateImage`
+  - Loads an SDXL checkpoint or video-capable pipeline when you call `SetModel`
+  - Generates a PNG for `GenerateImage` / image-mode `GenerateMedia`
+  - Generates an MP4 for video-mode `GenerateMedia` when the selected model can be loaded by a supported Diffusers video pipeline
   - Applies LoRAs via PEFT/Diffusers (`SetLora`)
 - **Important:** The worker currently calls `.to("cuda")` when loading a model, so it expects CUDA/GPU.
 - **Prompt length:** Long prompts are chunked; cap is controlled by `IMG_GEN_MAX_PROMPT_CHUNKS` (default `128`).
@@ -188,6 +193,7 @@ Base URL: `http://localhost:$API_PORT`
 | `POST` | `/clearmodel` | Unloads model + clears LoRAs |
 | `POST` | `/clearloras` | Clears LoRAs |
 | `POST` | `/generateimage` | Generates a PNG (binary response) |
+| `POST` | `/generatemedia` | Generates image or video bytes; returns `X-Media-Type: image|video` |
 
 Examples:
 
@@ -214,6 +220,12 @@ curl -X POST http://localhost:8080/generateimage \
   -H 'Content-Type: application/json' \
   -d '{"positivePrompt":"a cinematic portrait photo","negativePrompt":"blurry"}' \
   --output out.png
+
+# Generate media (PNG for image models, MP4 for video models)
+curl -X POST http://localhost:8080/generatemedia \
+  -H 'Content-Type: application/json' \
+  -d '{"mode":"auto","positivePrompt":"a cinematic shot of neon rain","negativePrompt":"blurry"}' \
+  --output out.media
 ```
 
 ---
@@ -226,6 +238,7 @@ The shared contract lives in:
 
 The worker implements:
 - `GenerateImage`
+- `GenerateMedia`
 - `SetModel`, `GetCurrentModel`, `ClearModel`
 - `SetLora`, `GetCurrentLoras`, `ClearLoras`
 

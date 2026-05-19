@@ -28,7 +28,7 @@ func NewApi(rpc *dependencies.Rpc, config config.ApiConfig, hub *Hub, dl *Downlo
 	}
 
 	return &Api{
-		server:              fiber.New(),
+		server:              fiber.New(fiber.Config{BodyLimit: 32 * 1024 * 1024}),
 		rpc:                 rpc,
 		port:                config.Port,
 		allowedOrigins:      config.AllowedOrigins,
@@ -81,6 +81,7 @@ func (a *Api) addRoutes() {
 	// rest endpoints
 	a.server.Add("GET", "/health", a.Health())
 	a.server.Add("POST", "/generateimage", a.GenerateImage())
+	a.server.Add("POST", "/generatemedia", a.GenerateMedia())
 	a.server.Add("GET", "/models", a.ListModels())
 	a.server.Add("GET", "/loras", a.ListLoras())
 	a.server.Add("POST", "/setmodel", a.SetModel())

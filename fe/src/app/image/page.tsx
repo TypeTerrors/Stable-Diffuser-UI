@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsUpDown, Loader2, RefreshCw, Trash2, X } from "lucide-react";
+import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsUpDown, Film, ImageIcon, Loader2, RefreshCw, Trash2, Upload, X } from "lucide-react";
 
 type ModelsResponse = { modelPaths: string[] };
 type LorasResponse = { lorapaths: string[] };
@@ -38,6 +38,8 @@ type SetLoraRequest = { path: string; weight: number };
 type AppliedLora = { path: string; weight: number; triggerWords?: string | null };
 type CurrentModelResponse = { modelPath: string };
 type DownloadEvent = { type: string; jobId: string; modelVersionId: number; message?: string; path?: string };
+type MediaKind = "image" | "video";
+type GenerationMode = "auto" | "text_to_image" | "text_to_video" | "image_to_video";
 
 type DownloadFilenamePayloadV1 = {
   v: 1;
@@ -46,12 +48,24 @@ type DownloadFilenamePayloadV1 = {
   l: Array<[path: string, weight: number]>;
   pp: string;
   np: string;
+  mode?: GenerationMode;
+  mt?: MediaKind;
+  ii?: string;
 };
 
 type PreviewItem = {
   src: string;
   filename: string;
   payload: DownloadFilenamePayloadV1;
+  mediaType: MediaKind;
+  mimeType: string;
+};
+
+type InputImageState = {
+  dataBase64: string;
+  mimeType: string;
+  filename: string;
+  previewUrl: string;
 };
 
 type CatalogItem = {
@@ -86,9 +100,46 @@ async function fetchJson<T>(url: URL, init?: RequestInit): Promise<T> {
   return (await resp.json()) as T;
 }
 
+const VIDEO_MODEL_HINTS = ["video", "ltx", "ltxv", "wan", "hunyuan", "cogvideo", "mochi", "zeroscope", "animatediff", "svd"];
+
+function modelSupportsVideo(path: string): boolean {
+  const normalized = path.replaceAll("\\", "/").toLowerCase();
+  return VIDEO_MODEL_HINTS.some((hint) => normalized.includes(hint));
+}
+
+function extensionFromMime(mimeType: string, mediaType: MediaKind): "png" | "jpg" | "webp" | "mp4" {
+  const normalized = mimeType.toLowerCase();
+  if (mediaType === "video") return "mp4";
+  if (normalized.includes("jpeg") || normalized.includes("jpg")) return "jpg";
+  if (normalized.includes("webp")) return "webp";
+  return "png";
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function inputImageFromFile(file: File): Promise<InputImageState> {
+  return {
+    dataBase64: arrayBufferToBase64(await file.arrayBuffer()),
+    mimeType: file.type || "image/png",
+    filename: file.name,
+    previewUrl: URL.createObjectURL(file),
+  };
+}
+
 export default function Home() {
   const [positivePrompt, setPositivePrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("auto");
+  const [inputImage, setInputImage] = useState<InputImageState | null>(null);
+  const inputImageFileRef = useRef<HTMLInputElement | null>(null);
   const [previewState, setPreviewState] = useState<{ items: PreviewItem[]; index: number }>({ items: [], index: -1 });
   const previewItemsRef = useRef<PreviewItem[]>([]);
   const previewItem = previewState.index >= 0 ? previewState.items[previewState.index] : null;
@@ -119,6 +170,7 @@ export default function Home() {
   const urls = useMemo(() => {
     return {
       generate: new URL("generateimage", baseUrl),
+      generateMedia: new URL("generatemedia", baseUrl),
       models: new URL("models", baseUrl),
       loras: new URL("loras", baseUrl),
       setModel: new URL("setmodel", baseUrl),
@@ -161,6 +213,14 @@ export default function Home() {
     const normalized = currentModelPath.replaceAll("\\", "/");
     return normalized.split("/").slice(-1)[0] ?? currentModelPath;
   }, [currentModelPath]);
+  const selectedModelSupportsVideo = useMemo(() => modelSupportsVideo(selectedModelPath), [selectedModelPath]);
+  const currentModelSupportsVideo = useMemo(() => modelSupportsVideo(currentModelPath), [currentModelPath]);
+  const showVideoControls = selectedModelSupportsVideo || currentModelSupportsVideo;
+  const resolvedGenerationMode: GenerationMode = useMemo(() => {
+    if (generationMode !== "auto") return generationMode;
+    if (!currentModelSupportsVideo) return "text_to_image";
+    return inputImage ? "image_to_video" : "text_to_video";
+  }, [currentModelSupportsVideo, generationMode, inputImage]);
 
   const refreshAll = async () => {
     setBusy("refresh");
@@ -202,6 +262,13 @@ export default function Home() {
     window.sessionStorage.setItem(key, next);
     setClientId(next);
   }, []);
+
+  useEffect(() => {
+    const previewUrl = inputImage?.previewUrl;
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [inputImage?.previewUrl]);
 
   const pushToast = (toast: Omit<ToastItem, "id">, opts?: { timeoutMs?: number }) => {
     const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
@@ -323,6 +390,25 @@ export default function Home() {
     };
   }, []);
 
+  const handleInputImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setStatus("Input media must be an image.");
+      event.target.value = "";
+      return;
+    }
+
+    setStatus("");
+    try {
+      setInputImage(await inputImageFromFile(file));
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy("generate");
@@ -331,9 +417,18 @@ export default function Home() {
       const requestBody = {
         positivePrompt,
         negativePrompt,
+        mode: resolvedGenerationMode,
+        inputImage:
+          currentModelSupportsVideo && inputImage
+            ? {
+                dataBase64: inputImage.dataBase64,
+                mimeType: inputImage.mimeType,
+                filename: inputImage.filename,
+              }
+            : undefined,
       };
 
-      const responseImage = await fetch(urls.generate.toString(), {
+      const responseMedia = await fetch(urls.generateMedia.toString(), {
         method: "POST",
         body: JSON.stringify(requestBody),
         headers: {
@@ -341,9 +436,15 @@ export default function Home() {
         },
       });
 
-      if (!responseImage.ok) throw new Error(`HTTP error! status: ${responseImage.status}`);
+      if (!responseMedia.ok) {
+        const text = await responseMedia.text().catch(() => "");
+        throw new Error(text || `HTTP error! status: ${responseMedia.status}`);
+      }
 
-      const blob = await responseImage.blob();
+      const blob = await responseMedia.blob();
+      const mimeType = blob.type || responseMedia.headers.get("Content-Type") || "";
+      const mediaTypeHeader = responseMedia.headers.get("X-Media-Type")?.toLowerCase();
+      const mediaType: MediaKind = mediaTypeHeader === "video" || mimeType.toLowerCase().startsWith("video/") ? "video" : "image";
       const objectUrl = URL.createObjectURL(blob);
       const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
       const payload: DownloadFilenamePayloadV1 = {
@@ -353,11 +454,14 @@ export default function Home() {
         l: (currentLoras ?? []).map((l) => [pathTokenFromFullPath(l.path, "loras"), l.weight]),
         pp: positivePrompt,
         np: negativePrompt,
+        mode: resolvedGenerationMode,
+        mt: mediaType,
+        ii: currentModelSupportsVideo && inputImage ? inputImage.filename : undefined,
       };
-      const filename = downloadFilenameFromPayloadV1(payload, "png");
+      const filename = downloadFilenameFromPayloadV1(payload, extensionFromMime(mimeType, mediaType));
       setPreviewState((prev) => {
         const maxHistory = 50;
-        let items = [...prev.items, { src: objectUrl, payload, filename }];
+        let items = [...prev.items, { src: objectUrl, payload, filename, mediaType, mimeType }];
         if (items.length > maxHistory) {
           const overflow = items.length - maxHistory;
           const removed = items.slice(0, overflow);
@@ -397,6 +501,12 @@ export default function Home() {
       setCurrentModelPath(resp.modelPath ?? "");
       setCurrentLoras([]);
       setSelectedLoras({});
+      if (modelSupportsVideo(resp.modelPath ?? selectedModelPath)) {
+        setGenerationMode("auto");
+      } else {
+        setGenerationMode("auto");
+        setInputImage(null);
+      }
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
@@ -445,6 +555,8 @@ export default function Home() {
       setCurrentLoras([]);
       setSelectedModelPath("");
       setSelectedLoras({});
+      setGenerationMode("auto");
+      setInputImage(null);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
@@ -848,6 +960,89 @@ export default function Home() {
 
             <Card className="border-muted-foreground/10 shadow-sm">
               <CardHeader>
+                <CardTitle>Generation mode</CardTitle>
+                <CardDescription>The active model decides whether output is image or video in auto mode.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "auto" as const, label: "Auto" },
+                    { value: "text_to_image" as const, label: "Image", icon: ImageIcon, disabled: currentModelSupportsVideo },
+                    { value: "text_to_video" as const, label: "Text to video", icon: Film, disabled: !currentModelSupportsVideo },
+                    { value: "image_to_video" as const, label: "Image to video", icon: Upload, disabled: !currentModelSupportsVideo },
+                  ].map((mode) => {
+                    const Icon = mode.icon;
+                    return (
+                      <Button
+                        key={mode.value}
+                        type="button"
+                        variant={generationMode === mode.value ? "secondary" : "outline"}
+                        size="sm"
+                        disabled={mode.disabled}
+                        onClick={() => setGenerationMode(mode.value)}
+                        className="gap-2"
+                      >
+                        {Icon ? <Icon className="size-4" /> : null}
+                        {mode.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={currentModelSupportsVideo ? "secondary" : "outline"}>
+                    {currentModelSupportsVideo ? "Video model active" : showVideoControls ? "Apply video model" : "Image model active"}
+                  </Badge>
+                  <Badge variant="outline">Resolved: {resolvedGenerationMode.replaceAll("_", " ")}</Badge>
+                </div>
+
+                {showVideoControls ? (
+                  <div className="space-y-3 rounded-lg border bg-muted/40 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">Input image</div>
+                        <p className="text-xs text-muted-foreground">
+                          Optional for video models. If omitted, video generation runs from text only.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={!currentModelSupportsVideo}
+                          onClick={() => inputImageFileRef.current?.click()}
+                        >
+                          <Upload className="size-4" />
+                          Choose image
+                        </Button>
+                        <input ref={inputImageFileRef} type="file" accept="image/*" className="sr-only" onChange={handleInputImageChange} />
+                        <Button type="button" variant="ghost" size="sm" disabled={!inputImage} onClick={() => setInputImage(null)}>
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+
+                    {inputImage ? (
+                      <div className="grid gap-3 sm:grid-cols-[96px_1fr] sm:items-center">
+                        <div className="relative h-24 w-24 overflow-hidden rounded-md border bg-background">
+                          <Image src={inputImage.previewUrl} alt="Input image preview" fill className="object-cover" unoptimized />
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                          <div className="truncate text-sm font-medium" title={inputImage.filename}>
+                            {inputImage.filename}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{inputImage.mimeType}</p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+
+            <Card className="border-muted-foreground/10 shadow-sm">
+              <CardHeader>
                 <CardTitle>Prompts</CardTitle>
                 <CardDescription>Generate uses the currently applied model and LoRAs.</CardDescription>
               </CardHeader>
@@ -912,15 +1107,20 @@ export default function Home() {
                 <div className="relative">
                   <AspectRatio ratio={1}>
                     <div className="absolute inset-0 overflow-hidden rounded-lg border bg-muted">
-                      <Image
-                        key={previewSrc}
-                        src={previewSrc || "/file.svg"}
-                        alt="Generated preview"
-                        fill
-                        className="object-contain"
-                        sizes="(min-width: 1280px) 540px, 100vw"
-                        onError={() => setStatus("Preview image failed to load (invalid image bytes or URL).")}
-                      />
+                      {previewItem?.mediaType === "video" ? (
+                        <video key={previewSrc} src={previewSrc} controls className="h-full w-full bg-black object-contain" />
+                      ) : (
+                        <Image
+                          key={previewSrc}
+                          src={previewSrc || "/file.svg"}
+                          alt="Generated preview"
+                          fill
+                          className="object-contain"
+                          sizes="(min-width: 1280px) 540px, 100vw"
+                          unoptimized={previewSrc.startsWith("blob:")}
+                          onError={() => setStatus("Preview image failed to load (invalid image bytes or URL).")}
+                        />
+                      )}
                       {busy === "generate" ? (
                         <div className="absolute inset-0 flex items-center justify-center bg-background/70">
                           <Loader2 className="h-8 w-8 animate-spin" />
@@ -987,7 +1187,7 @@ export default function Home() {
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Button asChild variant="secondary" className="w-full">
                       <a href={previewSrc} download={downloadFilename}>
-                        Download image
+                        Download {previewItem?.mediaType === "video" ? "video" : "image"}
                       </a>
                     </Button>
                     <Button

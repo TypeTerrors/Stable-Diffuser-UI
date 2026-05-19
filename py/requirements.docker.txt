@@ -9,6 +9,8 @@ transformers
 accelerate
 av
 einops
+imageio
+imageio-ffmpeg
 numpy
 pillow
 safetensors
